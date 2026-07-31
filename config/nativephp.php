@@ -133,9 +133,12 @@ return [
         // Phiki grammars — only 16 are used by App\Enums\Language, plus the
         // transitive closure of grammars they `include` (e.g. php pulls in
         // html/js/css/sql; ruby pulls in haml/markdown/shell/etc. for heredocs).
-        // csharp.json and ruby.json are excluded from this list on purpose:
-        // those two are patched in resources/grammars (see AppServiceProvider
-        // PATCHED_GRAMMARS) and the vendor originals below are dead.
+        // csharp.json and ruby.json are deliberately absent from this list,
+        // i.e. kept. The runtime never reads either one — patched copies in
+        // resources/grammars shadow both (see AppServiceProvider
+        // PATCHED_GRAMMARS) — but VendoredGrammarDriftTest re-derives those
+        // patched copies from the vendor originals, so the originals are kept
+        // rather than pruned.
         'vendor/phiki/phiki/resources/grammars/actionscript-3.json',
         'vendor/phiki/phiki/resources/grammars/ada.json',
         'vendor/phiki/phiki/resources/grammars/angular-expression.json',

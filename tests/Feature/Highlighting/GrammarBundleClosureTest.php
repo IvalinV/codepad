@@ -205,8 +205,13 @@ it('keeps every grammar reachable from Language::cases() off the bundle exclusio
     $requiredButExcluded = [];
 
     foreach (array_keys($reachedVia) as $value) {
-        // The two patched grammars load from resources/, not vendor/, so their
-        // vendor originals being excluded is correct, not a bug.
+        // Unreached today: neither patched grammar's vendor original is on the
+        // exclusion list (both are kept, so VendoredGrammarDriftTest can
+        // re-derive the patched copies from them), so the check below would
+        // pass for them anyway. Kept as a guard rather than removed — the
+        // runtime loads these two from resources/, not vendor/, so if their
+        // vendor originals ever were pruned that would not be the runtime
+        // hazard this test exists to catch.
         if (in_array($value, $patchedGrammars, true)) {
             continue;
         }
