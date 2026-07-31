@@ -10,6 +10,12 @@ final class SnippetArchive
 {
     private const VERSION = 1;
 
+    /**
+     * Maximum body length accepted on import, matching the `max:102400` rule
+     * enforced by `StoreSnippetRequest` and `UpdateSnippetRequest`.
+     */
+    private const MAX_BODY_LENGTH = 102400;
+
     public function export(): string
     {
         $snippets = Snippet::query()
@@ -45,9 +51,13 @@ final class SnippetArchive
         $imported = 0;
 
         foreach ($decoded['snippets'] as $entry) {
-            $language = Language::tryFrom($entry['language'] ?? '');
+            if (! is_array($entry) || ! $this->isImportable($entry)) {
+                continue;
+            }
 
-            if (! $language instanceof Language || ! isset($entry['body'])) {
+            $language = Language::tryFrom($entry['language']);
+
+            if (! $language instanceof Language) {
                 continue;
             }
 
@@ -61,5 +71,31 @@ final class SnippetArchive
         }
 
         return $imported;
+    }
+
+    /**
+     * Whether a decoded archive entry has the field types required to
+     * safely reach `Snippet::create()`.
+     *
+     * A malformed backup must degrade one entry at a time rather than
+     * aborting the whole import or letting PDO silently coerce a scalar
+     * `body` into a string, so every field is checked by type here rather
+     * than relying on `isset()` presence alone.
+     *
+     * @param  array<string, mixed>  $entry
+     */
+    private function isImportable(array $entry): bool
+    {
+        $title = $entry['title'] ?? null;
+
+        if (! is_string($title) && $title !== null) {
+            return false;
+        }
+
+        if (! isset($entry['body']) || ! is_string($entry['body']) || mb_strlen($entry['body']) > self::MAX_BODY_LENGTH) {
+            return false;
+        }
+
+        return isset($entry['language']) && is_string($entry['language']);
     }
 }

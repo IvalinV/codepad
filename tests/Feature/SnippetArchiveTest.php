@@ -67,3 +67,79 @@ it('skips entries with an unknown language rather than aborting', function () {
     expect($this->archive->import($json))->toBe(1)
         ->and(Snippet::query()->count())->toBe(1);
 });
+
+it('skips a non-string body without aborting, wherever it appears', function (int $badIndex) {
+    $goodEntry = fn (string $title): array => [
+        'title' => $title, 'body' => 'good body', 'language' => 'php', 'created_at' => null, 'updated_at' => null,
+    ];
+    $badEntry = ['title' => 'Bad', 'body' => ['nested' => 'value'], 'language' => 'php', 'created_at' => null, 'updated_at' => null];
+
+    $entries = [$goodEntry('First'), $goodEntry('Second'), $goodEntry('Third')];
+    array_splice($entries, $badIndex, 0, [$badEntry]);
+
+    $json = json_encode(['version' => 1, 'snippets' => $entries]);
+
+    expect($this->archive->import($json))->toBe(3)
+        ->and(Snippet::query()->count())->toBe(3)
+        ->and(Snippet::query()->pluck('title')->all())->toBe(['First', 'Second', 'Third']);
+})->with([
+    'first' => [0],
+    'middle' => [1],
+    'last' => [3],
+]);
+
+it('skips a scalar body rather than silently stringifying it', function (mixed $body) {
+    $json = json_encode(['version' => 1, 'snippets' => [
+        ['title' => 'Good', 'body' => 'kept', 'language' => 'php', 'created_at' => null, 'updated_at' => null],
+        ['title' => 'Bad', 'body' => $body, 'language' => 'php', 'created_at' => null, 'updated_at' => null],
+    ]]);
+
+    expect($this->archive->import($json))->toBe(1)
+        ->and(Snippet::query()->count())->toBe(1)
+        ->and(Snippet::query()->first()->title)->toBe('Good');
+})->with([
+    'integer' => [12345],
+    'boolean' => [true],
+]);
+
+it('skips an entry with a non-string title', function () {
+    $json = json_encode(['version' => 1, 'snippets' => [
+        ['title' => 'Good', 'body' => 'kept', 'language' => 'php', 'created_at' => null, 'updated_at' => null],
+        ['title' => ['not', 'a', 'string'], 'body' => 'y', 'language' => 'php', 'created_at' => null, 'updated_at' => null],
+    ]]);
+
+    expect($this->archive->import($json))->toBe(1)
+        ->and(Snippet::query()->count())->toBe(1);
+});
+
+it('skips an entry with a non-string language', function () {
+    $json = json_encode(['version' => 1, 'snippets' => [
+        ['title' => 'Good', 'body' => 'kept', 'language' => 'php', 'created_at' => null, 'updated_at' => null],
+        ['title' => 'Bad', 'body' => 'y', 'language' => ['php'], 'created_at' => null, 'updated_at' => null],
+    ]]);
+
+    expect($this->archive->import($json))->toBe(1)
+        ->and(Snippet::query()->count())->toBe(1);
+});
+
+it('imports a body at exactly the 100 KB cap', function () {
+    $body = str_repeat('a', 102400);
+    $json = json_encode(['version' => 1, 'snippets' => [
+        ['title' => 'Big', 'body' => $body, 'language' => 'php', 'created_at' => null, 'updated_at' => null],
+    ]]);
+
+    expect($this->archive->import($json))->toBe(1)
+        ->and(Snippet::query()->first()->body)->toHaveLength(102400);
+});
+
+it('skips a body over the 100 KB cap without aborting the rest of the import', function () {
+    $tooLarge = str_repeat('a', 102401);
+    $json = json_encode(['version' => 1, 'snippets' => [
+        ['title' => 'Good', 'body' => 'kept', 'language' => 'php', 'created_at' => null, 'updated_at' => null],
+        ['title' => 'TooBig', 'body' => $tooLarge, 'language' => 'php', 'created_at' => null, 'updated_at' => null],
+    ]]);
+
+    expect($this->archive->import($json))->toBe(1)
+        ->and(Snippet::query()->count())->toBe(1)
+        ->and(Snippet::query()->first()->title)->toBe('Good');
+});
