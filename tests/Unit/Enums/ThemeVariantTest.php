@@ -7,6 +7,9 @@ it('has exactly two variants', function () {
     expect(ThemeVariant::cases())->toHaveCount(2);
 });
 
-it('maps each variant to a phiki theme', function (ThemeVariant $variant) {
-    expect($variant->phikiTheme())->toBeInstanceOf(Theme::class);
-})->with(ThemeVariant::cases());
+it('maps each variant to the expected phiki theme', function (ThemeVariant $variant, Theme $expected) {
+    expect($variant->phikiTheme())->toBe($expected);
+})->with([
+    'Light' => [ThemeVariant::Light, Theme::GithubLight],
+    'Dark' => [ThemeVariant::Dark, Theme::GithubDark],
+]);
