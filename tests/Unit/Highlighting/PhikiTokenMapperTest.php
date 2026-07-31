@@ -28,6 +28,23 @@ it('assigns a hex colour to every run', function () {
     }
 });
 
+it('gives unmatched tokens the theme base foreground instead of a hardcoded default', function () {
+    $source = "<?php\necho 'hi';";
+    $tokens = (new Phiki)->codeToHighlightedTokens($source, Grammar::Php, Theme::GithubDark);
+
+    $themeForeground = (new Phiki)->environment()->themes->resolve(Theme::GithubDark)->base()->foreground;
+
+    expect($themeForeground)->toBe('#e1e4e8');
+
+    $semicolonRun = collect($this->mapper->map($tokens, $themeForeground)->toArray())
+        ->flatten(1)
+        ->firstWhere('text', ';');
+
+    expect($semicolonRun)->not->toBeNull()
+        ->and($semicolonRun['color'])->toBe('#e1e4e8')
+        ->and($semicolonRun['color'])->not->toBe('#000000');
+});
+
 it('reconstructs the original source when runs are concatenated', function () {
     $text = collect($this->mapper->map($this->tokens)->toArray())
         ->map(fn (array $line): string => collect($line)->pluck('text')->implode(''))
