@@ -19,6 +19,15 @@ pest()->extend(TestCase::class)
     ->in('Feature');
 
 /*
+| The highlighting unit tests resolve their collaborators through `app()`, so
+| they need the real application container — without it they silently exercise
+| an unconfigured Phiki rather than the one AppServiceProvider registers. No
+| database, so no RefreshDatabase.
+*/
+
+pest()->extend(TestCase::class)->in('Unit/Highlighting');
+
+/*
 |--------------------------------------------------------------------------
 | Expectations
 |--------------------------------------------------------------------------
