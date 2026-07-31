@@ -6,7 +6,7 @@
 
 **Architecture:** Codepad is a capture-and-retrieve tool, not an editor. Snippets live in on-device SQLite with no backend and no accounts. Code is highlighted at **save time** by Phiki, parsed into a normalised token structure, and stored per theme in a derived `snippet_renders` cache table guarded by a content hash. The read view renders those tokens as nested `<native:text>` runs via NativePHP v4's SuperNative renderer — real native UI, no WebView.
 
-**Tech Stack:** Laravel 12, PHP 8.4, NativePHP Mobile `~4.0.0` (SuperNative), `nativephp/mobile-clipboard`, `phiki/phiki`, SQLite, Pest 5.
+**Tech Stack:** Laravel 13, PHP 8.4, NativePHP Mobile `~4.0.0` (SuperNative), `nativephp/mobile-clipboard`, `phiki/phiki` 2.x, SQLite, Pest 5.
 
 ## Global Constraints
 
@@ -17,7 +17,8 @@
 - **No `env()` outside `config/`.** Use `config()`.
 - **Explicit return types** on every method and function. PHP 8 constructor property promotion. Curly braces on all control structures.
 - **Enum cases are TitleCase.**
-- **Tests are Pest 5** (`pestphp/pest: ^5.0` — note `CLAUDE.md` says v4; the lockfile is authoritative). Feature tests in `tests/Feature`, unit tests in `tests/Unit`.
+- **Framework is Laravel 13** (`laravel/framework: v13.23.0`) — note `CLAUDE.md` says Laravel 12. **The lockfile is authoritative over `CLAUDE.md` on every version question.** Verify Laravel 13 semantics before assuming a Laravel 12 idiom still holds.
+- **Tests are Pest 5** (`pestphp/pest: ^5.0` — `CLAUDE.md` says v4; again, the lockfile wins). Feature tests in `tests/Feature`, unit tests in `tests/Unit`.
 - **Run `vendor/bin/pint --dirty`** before every commit.
 - **Body size cap:** 102400 bytes (100 KB) per snippet.
 - **Read view line cap:** 300 lines before a "show all" affordance. Provisional — Task 0.1 may remove it.
@@ -53,7 +54,11 @@ Three assumptions are unverified and each can invalidate schema or scope. **Phas
 
 **Modified:** `composer.json`, `config/nativephp.php`, `.env` / `.env.example`, `routes/web.php`, `tests/Pest.php`, `app/Providers/AppServiceProvider.php`.
 
-**A note on the screen tasks (14–18).** Tasks 1–13 are pure PHP and fully specified — exact code, exact signatures. Tasks 14–18 touch SuperNative's component base class, routing and EDGE element namespaces, which this plan has **not** verified against an installed copy (the docs show both `Native\Mobile\Edge\Elements\*` and `Native\Mobile\UI\Elements\*`). Before starting Task 14, read `vendor/nativephp/mobile/src/` and the v4 docs, and correct the imports in those tasks. Do not trust the import lines below over the installed package.
+**A note on the screen tasks (14–18).** Tasks 1–13 are pure PHP and fully specified — exact code, exact signatures. Tasks 14–18 touch SuperNative's component base class, routing, and element namespaces. These have now been **verified against the installed packages** — see `.superpowers/sdd/PLAN/api-surface.md`, which is authoritative over both the v4 docs and the import lines below. The essentials:
+
+- Screen base class: `Native\Mobile\Edge\NativeComponent`. Routing: `Route::native(string $uri, string $componentClass)`.
+- **Both** element namespaces exist: `Native\Mobile\Edge\Elements\*` (core) and `Native\Mobile\UI\Elements\*` (from `nativephp/mobile-ui`, added in Task 1b).
+- **There is no `<native:text-input>`.** Use one of `<native:outlined-text-input>`, `<native:filled-text-input>`, `<native:bare-text-input>`. **Codepad uses `bare-text-input`** for both the code editor and the search field — it is the chromeless variant, it accepts class-based styling, and code should not sit inside a form-field chrome.
 
 ---
 
@@ -262,7 +267,7 @@ enum Language: string
             self::CSharp => Grammar::Csharp,
             self::Ruby => Grammar::Ruby,
             self::Sql => Grammar::Sql,
-            self::Bash => Grammar::Bash,
+            self::Bash => Grammar::Shellscript,
             self::Json => Grammar::Json,
             self::Yaml => Grammar::Yaml,
             self::Html => Grammar::Html,
@@ -294,7 +299,7 @@ enum Language: string
 }
 ```
 
-**The `Grammar::` case names above are unverified.** Open `vendor/phiki/phiki/src/Grammar/Grammar.php` and correct any that don't exist. The test in Step 1 catches the mismatch only if the enum compiles — a missing case is a fatal error, which is the loud failure you want.
+**The `Grammar::` case names above have been verified against `vendor/phiki/phiki/src/Grammar/Grammar.php` and are correct as written** — including `Grammar::Shellscript` for `Language::Bash`, which is the real case name (`Grammar::Bash` does not exist and is a fatal `Error`). Do not "correct" it back to `Bash`. See `.superpowers/sdd/PLAN/api-surface.md` for the full verified surface.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -610,25 +615,35 @@ git commit -m "feat: add snippets and snippet_renders schema"
 
 ---
 
-### Task 5: `HighlightedCode` and `PhikiHtmlParser`
+### Task 5: `HighlightedCode` and `PhikiTokenMapper`
 
 **Files:**
-- Create: `app/Support/Highlighting/HighlightedCode.php`, `app/Support/Highlighting/PhikiHtmlParser.php`, `tests/Fixtures/phiki-php-github-light.html`
-- Test: `tests/Unit/Highlighting/PhikiHtmlParserTest.php`
+- Create: `app/Support/Highlighting/HighlightedCode.php`, `app/Support/Highlighting/PhikiTokenMapper.php`
+- Test: `tests/Unit/Highlighting/PhikiTokenMapperTest.php`
 
 **Interfaces:**
-- Consumes: nothing.
-- Produces: `HighlightedCode::__construct(array $lines)`, `HighlightedCode::toArray(): array`, `HighlightedCode::fromArray(array $lines): self`, `HighlightedCode::lineCount(): int`, `PhikiHtmlParser::parse(string $html): HighlightedCode`.
+- Consumes: `App\Enums\Language`, `App\Enums\ThemeVariant` (only in the test, to obtain input).
+- Produces: `HighlightedCode::__construct(array $lines)`, `HighlightedCode::toArray(): array`, `HighlightedCode::fromArray(array $lines): self`, `HighlightedCode::lineCount(): int`, `HighlightedCode::truncate(int $maxLines): self`, `PhikiTokenMapper::map(array $highlightedTokens): HighlightedCode`.
 
-The stored shape is `array<int, array<int, array{text: string, color: string}>>` — a list of lines, each a list of coloured runs. Storing normalised tokens rather than HTML means the Blade view is a trivial loop and every part of the pipeline is unit-testable without a device.
+**Why this shape.** The stored form is `array<int, array<int, array{text: string, color: string}>>` — a list of lines, each a list of coloured runs. Normalised tokens rather than HTML means the Blade view is a trivial loop, storage is compact JSON, and every part of the pipeline is unit-testable without a device.
 
-- [ ] **Step 1: Capture a real fixture — do not hand-write it**
+**Revised approach — read this before starting.** An earlier draft of this plan parsed Phiki's HTML output with `DOMDocument`, because the public docs only document `codeToHtml()`. That was wrong: the installed `phiki/phiki` v2.2.1 **does** expose a structured-token API. Use it. There is no HTML parsing in this task.
+
+- [ ] **Step 1: Discover the real token API before writing anything**
+
+Read these in the installed package and write down the exact signatures:
+- `vendor/phiki/phiki/src/Phiki.php` — the signatures of `codeToTokens()` and `codeToHighlightedTokens()`. Note the parameter order and whether a theme is required.
+- The `HighlightedToken` class — its public properties or accessors. You need two things from each token: the **text** it covers, and its **resolved foreground colour**.
+
+Confirm your reading with a scratch call:
 
 ```bash
-php artisan tinker --execute="file_put_contents('tests/Fixtures/phiki-php-github-light.html', (new Phiki\Phiki)->codeToHtml(\"<?php\n\nfunction handle(): void\n{\n    echo 'hi';\n}\n\", Phiki\Grammar\Grammar::Php, Phiki\Theme\Theme::GithubLight)->toString());"
+php artisan tinker --execute="\$t = (new Phiki\Phiki)->codeToHighlightedTokens(\"<?php\necho 'hi';\", Phiki\Grammar\Grammar::Php, Phiki\Theme\Theme::GithubLight); var_dump(\$t[0][0]);"
 ```
 
-Read the file. The parser below walks the DOM generically rather than assuming class names, but you need to see the real markup to know whether lines are wrapped in elements or separated by newline text nodes.
+Record the real signature and token shape in your report. **If the actual signature differs from the call above, the real signature wins** — adjust the test in Step 2 to match it. The contract that must not change is `PhikiTokenMapper::map(array $highlightedTokens): HighlightedCode`.
+
+If a token's colour can be absent or null for unstyled text, fall back to the constant `PhikiTokenMapper::DEFAULT_COLOR` rather than emitting a run with no colour.
 
 - [ ] **Step 2: Write the failing test**
 
@@ -636,23 +651,27 @@ Read the file. The parser below walks the DOM generically rather than assuming c
 <?php
 
 use App\Support\Highlighting\HighlightedCode;
-use App\Support\Highlighting\PhikiHtmlParser;
+use App\Support\Highlighting\PhikiTokenMapper;
+use Phiki\Grammar\Grammar;
+use Phiki\Phiki;
+use Phiki\Theme\Theme;
 
 beforeEach(function () {
-    $this->parser = new PhikiHtmlParser;
-    $this->html = file_get_contents(base_path('tests/Fixtures/phiki-php-github-light.html'));
+    $this->source = "<?php\n\nfunction handle(): void\n{\n    echo 'hi';\n}";
+    $this->tokens = (new Phiki)->codeToHighlightedTokens($this->source, Grammar::Php, Theme::GithubLight);
+    $this->mapper = new PhikiTokenMapper;
 });
 
 it('returns a HighlightedCode value object', function () {
-    expect($this->parser->parse($this->html))->toBeInstanceOf(HighlightedCode::class);
+    expect($this->mapper->map($this->tokens))->toBeInstanceOf(HighlightedCode::class);
 });
 
 it('preserves the source line count', function () {
-    expect($this->parser->parse($this->html)->lineCount())->toBe(7);
+    expect($this->mapper->map($this->tokens)->lineCount())->toBe(6);
 });
 
 it('assigns a hex colour to every run', function () {
-    foreach ($this->parser->parse($this->html)->toArray() as $line) {
+    foreach ($this->mapper->map($this->tokens)->toArray() as $line) {
         foreach ($line as $run) {
             expect($run['color'])->toMatch('/^#[0-9a-f]{3,8}$/i');
         }
@@ -660,27 +679,34 @@ it('assigns a hex colour to every run', function () {
 });
 
 it('reconstructs the original source when runs are concatenated', function () {
-    $text = collect($this->parser->parse($this->html)->toArray())
+    $text = collect($this->mapper->map($this->tokens)->toArray())
         ->map(fn (array $line): string => collect($line)->pluck('text')->implode(''))
         ->implode("\n");
 
-    expect(trim($text))->toContain('function handle(): void')
-        ->and(trim($text))->toContain("echo 'hi';");
+    expect(trim($text))->toBe(trim($this->source));
 });
 
 it('round-trips through toArray and fromArray', function () {
-    $parsed = $this->parser->parse($this->html);
+    $mapped = $this->mapper->map($this->tokens);
 
-    expect(HighlightedCode::fromArray($parsed->toArray())->toArray())->toBe($parsed->toArray());
+    expect(HighlightedCode::fromArray($mapped->toArray())->toArray())->toBe($mapped->toArray());
+});
+
+it('truncates to a maximum number of lines', function () {
+    expect($this->mapper->map($this->tokens)->truncate(3)->lineCount())->toBe(3);
+});
+
+it('leaves shorter input untouched when truncating', function () {
+    expect($this->mapper->map($this->tokens)->truncate(100)->lineCount())->toBe(6);
 });
 ```
 
-The reconstruction test is the important one: it proves no source text is silently dropped, which is the failure mode that would otherwise ship a snippet missing characters.
+**The reconstruction test is the important one.** It proves no source text is silently dropped in the mapping — the failure mode that would otherwise ship a snippet missing characters. Do not weaken it to `toContain` if it fails; fix the mapper.
 
-- [ ] **Step 3: Run test to verify it fails**
+- [ ] **Step 3: Run tests to verify they fail**
 
-Run: `php artisan test tests/Unit/Highlighting/PhikiHtmlParserTest.php`
-Expected: FAIL — `Class "App\Support\Highlighting\PhikiHtmlParser" not found`.
+Run: `php artisan test tests/Unit/Highlighting/PhikiTokenMapperTest.php`
+Expected: FAIL — `Class "App\Support\Highlighting\PhikiTokenMapper" not found`.
 
 - [ ] **Step 4: Write `HighlightedCode`**
 
@@ -718,132 +744,50 @@ final class HighlightedCode
 }
 ```
 
-- [ ] **Step 5: Write `PhikiHtmlParser`**
+- [ ] **Step 5: Write `PhikiTokenMapper`**
 
-```php
-<?php
+Map Phiki's `HighlightedToken[][]` to the stored shape: the outer array is lines, the inner array is that line's tokens, and each token becomes one `['text' => ..., 'color' => ...]` run. Use the real property/accessor names you recorded in Step 1 — do not guess them.
 
-namespace App\Support\Highlighting;
+Requirements:
+- `public function map(array $highlightedTokens): HighlightedCode` with an explicit return type.
+- A `private const DEFAULT_COLOR` used whenever a token carries no resolved foreground colour.
+- Skip tokens whose text is an empty string, so empty runs never reach storage.
+- Preserve line order and token order exactly — the reconstruction test depends on it.
+- Add a PHPDoc array shape for the `$highlightedTokens` parameter describing what it holds.
 
-use DOMDocument;
-use DOMElement;
-use DOMNode;
-use DOMText;
-use DOMXPath;
+- [ ] **Step 6: Run tests to verify they pass**
 
-final class PhikiHtmlParser
-{
-    private const DEFAULT_COLOR = '#24292e';
-
-    public function parse(string $html): HighlightedCode
-    {
-        $document = new DOMDocument;
-        $previous = libxml_use_internal_errors(true);
-        $document->loadHTML('<?xml encoding="UTF-8">'.$html, LIBXML_NOERROR | LIBXML_NOWARNING);
-        libxml_use_internal_errors($previous);
-
-        $xpath = new DOMXPath($document);
-        $lineNodes = $xpath->query("//*[contains(concat(' ', normalize-space(@class), ' '), ' line ')]");
-
-        if ($lineNodes !== false && $lineNodes->length > 0) {
-            $lines = [];
-
-            foreach ($lineNodes as $lineNode) {
-                $lines[] = $this->runsIn($lineNode, self::DEFAULT_COLOR);
-            }
-
-            return new HighlightedCode($lines);
-        }
-
-        return $this->parseByNewline($xpath);
-    }
-
-    /** @return array<int, array{text: string, color: string}> */
-    private function runsIn(DOMNode $node, string $inheritedColor): array
-    {
-        $runs = [];
-
-        foreach ($node->childNodes as $child) {
-            if ($child instanceof DOMText) {
-                if ($child->textContent !== '') {
-                    $runs[] = ['text' => $child->textContent, 'color' => $inheritedColor];
-                }
-
-                continue;
-            }
-
-            if ($child instanceof DOMElement) {
-                $runs = array_merge($runs, $this->runsIn($child, $this->colorOf($child, $inheritedColor)));
-            }
-        }
-
-        return $runs;
-    }
-
-    private function colorOf(DOMElement $element, string $fallback): string
-    {
-        if (preg_match('/color:\s*([^;"]+)/i', $element->getAttribute('style'), $matches) === 1) {
-            return trim($matches[1]);
-        }
-
-        return $fallback;
-    }
-
-    private function parseByNewline(DOMXPath $xpath): HighlightedCode
-    {
-        $code = $xpath->query('//code')?->item(0);
-
-        if (! $code instanceof DOMElement) {
-            return new HighlightedCode([]);
-        }
-
-        $lines = [[]];
-
-        foreach ($this->runsIn($code, self::DEFAULT_COLOR) as $run) {
-            $segments = explode("\n", $run['text']);
-
-            foreach ($segments as $index => $segment) {
-                if ($index > 0) {
-                    $lines[] = [];
-                }
-
-                if ($segment !== '') {
-                    $lines[count($lines) - 1][] = ['text' => $segment, 'color' => $run['color']];
-                }
-            }
-        }
-
-        return new HighlightedCode($lines);
-    }
-}
-```
-
-- [ ] **Step 6: Run test to verify it passes**
-
-Run: `php artisan test tests/Unit/Highlighting/PhikiHtmlParserTest.php`
-Expected: PASS. If the line count assertion fails, adjust the expected count to match the fixture you actually captured — but do **not** relax the reconstruction test.
+Run: `php artisan test tests/Unit/Highlighting/PhikiTokenMapperTest.php`
+Expected: PASS. If the line-count assertions fail, first check whether Phiki reports a trailing empty line for your source; adjust the expected count to match reality, but **do not** relax the reconstruction test.
 
 - [ ] **Step 7: Commit**
 
 ```bash
 vendor/bin/pint --dirty
 git add app/Support/Highlighting/ tests/
-git commit -m "feat: parse phiki html into normalised coloured token runs"
+git commit -m "feat: map phiki highlighted tokens into normalised coloured runs"
 ```
-
----
 
 ### Task 6: The `Highlighter` service
 
 **Files:**
 - Create: `app/Support/Highlighting/Highlighter.php`
+- Modify: `app/Providers/AppServiceProvider.php`
 - Test: `tests/Unit/Highlighting/HighlighterTest.php`
 
 **Interfaces:**
-- Consumes: `Language`, `ThemeVariant`, `PhikiHtmlParser`, `HighlightedCode`.
+- Consumes: `App\Enums\Language`, `App\Enums\ThemeVariant`, `App\Support\Highlighting\PhikiTokenMapper`, `App\Support\Highlighting\HighlightedCode`.
 - Produces: `Highlighter::highlight(string $code, Language $language, ThemeVariant $theme): HighlightedCode`.
 
-This is the **only** class that knows Phiki exists. If Task 0.1 rules Phiki out, this is the single file that gets replaced.
+This is the **only** class that knows Phiki exists — `SnippetRenderer` and every screen consume `HighlightedCode` alone. If the on-device spike (Task 0.1) rules Phiki out, this is the single file that gets replaced.
+
+**Its second job is resolving the theme's base foreground.** `PhikiTokenMapper::map()` takes an optional `?string $themeForeground`; tokens with no resolved colour fall back to it. If `Highlighter` does not supply it, every unmatched token — PHP `;`, JSON braces, all Markdown prose — renders in the mapper's hardcoded last-resort colour, which is invisible on dark themes. Task 5 fixed the mapper; this task is what actually wires the colour through. Do not skip it.
+
+The resolution path, verified against the installed `phiki/phiki` v2.2.1:
+
+```php
+(new Phiki)->environment()->themes->resolve($theme)->base()->foreground
+```
 
 - [ ] **Step 1: Write the failing test**
 
@@ -872,45 +816,52 @@ it('produces different colours for the two themes', function () {
     expect($light)->not->toBe($dark);
 });
 
+it('gives unmatched tokens the dark theme base foreground, not black', function () {
+    $runs = collect(app(Highlighter::class)->highlight("<?php\necho 'hi';", Language::Php, ThemeVariant::Dark)->toArray())
+        ->flatten(1);
+
+    $semicolon = $runs->firstWhere('text', ';');
+
+    expect($semicolon)->not->toBeNull()
+        ->and($semicolon['color'])->toBe('#e1e4e8')
+        ->and($semicolon['color'])->not->toBe('#000000');
+});
+
+it('gives unmatched tokens the light theme base foreground', function () {
+    $runs = collect(app(Highlighter::class)->highlight("<?php\necho 'hi';", Language::Php, ThemeVariant::Light)->toArray())
+        ->flatten(1);
+
+    expect($runs->firstWhere('text', ';')['color'])->toBe('#24292e');
+});
+
 it('handles an empty body without erroring', function () {
     expect(app(Highlighter::class)->highlight('', Language::PlainText, ThemeVariant::Light)->lineCount())
         ->toBeLessThanOrEqual(1);
 });
+
+it('highlights every language in the allowlist without erroring', function (Language $language) {
+    expect(app(Highlighter::class)->highlight("hello\nworld", $language, ThemeVariant::Light))
+        ->toBeInstanceOf(HighlightedCode::class);
+})->with(Language::cases());
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+The two base-foreground tests are the point of this task — they fail if `Highlighter` forgets to pass the theme colour to the mapper. The expected values `#e1e4e8` (GithubDark) and `#24292e` (GithubLight) come from each theme's `editor.foreground`; **verify both against the installed theme JSON before assuming them**, and correct the test if the installed theme differs. Do not replace them with a loose "is a hex string" assertion — that is precisely the vacuous check that let the original bug through.
+
+The final dataset test is cheap insurance: it exercises all 16 `Language` cases through a real Phiki call, so a grammar case that exists in the enum but blows up at highlight time is caught here rather than on a device.
+
+- [ ] **Step 2: Run tests to verify they fail**
 
 Run: `php artisan test tests/Unit/Highlighting/HighlighterTest.php`
 Expected: FAIL — `Class "App\Support\Highlighting\Highlighter" not found`.
 
 - [ ] **Step 3: Write the service**
 
-```php
-<?php
-
-namespace App\Support\Highlighting;
-
-use App\Enums\Language;
-use App\Enums\ThemeVariant;
-use Phiki\Phiki;
-
-final class Highlighter
-{
-    public function __construct(
-        private readonly Phiki $phiki,
-        private readonly PhikiHtmlParser $parser,
-    ) {}
-
-    public function highlight(string $code, Language $language, ThemeVariant $theme): HighlightedCode
-    {
-        $html = $this->phiki
-            ->codeToHtml($code, $language->grammar(), $theme->phikiTheme())
-            ->toString();
-
-        return $this->parser->parse($html);
-    }
-}
-```
+Requirements:
+- Constructor-promoted, readonly dependencies: `Phiki $phiki` and `PhikiTokenMapper $mapper`.
+- `highlight(string $code, Language $language, ThemeVariant $theme): HighlightedCode` — explicit return type.
+- Call `codeToHighlightedTokens($code, $language->grammar(), $theme->phikiTheme())`, resolve the theme's base foreground via the path given above, and pass both to `$this->mapper->map(...)`.
+- Resolve the base foreground **once per call**, not per token.
+- If the resolved base foreground is null or empty, pass `null` to the mapper so its own last-resort constant applies — do not substitute a colour of your own.
 
 - [ ] **Step 4: Register `Phiki` in the container**
 
@@ -920,9 +871,9 @@ In `app/Providers/AppServiceProvider::register()`:
 $this->app->singleton(Phiki::class, fn (): Phiki => new Phiki);
 ```
 
-Add `use Phiki\Phiki;` at the top.
+Add `use Phiki\Phiki;` at the top. Registering it as a singleton matters: Phiki lazily parses grammar and theme JSON from disk and caches it on the instance, so a fresh instance per call would re-read and re-parse those files every time — on a phone, for every snippet opened.
 
-- [ ] **Step 5: Run test to verify it passes**
+- [ ] **Step 5: Run tests to verify they pass**
 
 Run: `php artisan test tests/Unit/Highlighting/HighlighterTest.php`
 Expected: PASS.
@@ -931,11 +882,9 @@ Expected: PASS.
 
 ```bash
 vendor/bin/pint --dirty
-git add app/
+git add app/ tests/
 git commit -m "feat: add Highlighter wrapping phiki behind a stable interface"
 ```
-
----
 
 ### Task 7: `SnippetRenderer` — the derived cache
 
@@ -1680,7 +1629,7 @@ git commit -m "chore: prune unused phiki grammars and themes from the app bundle
 
 ## Phase 2 — Screens
 
-**Read this before starting Task 14.** These tasks specify behaviour and leave exact component/namespace names to be confirmed against the installed package. The v4 docs show both `Native\Mobile\Edge\Elements\*` and `Native\Mobile\UI\Elements\*`; this plan has verified neither. Read `vendor/nativephp/mobile/src/` and https://nativephp.com/docs/mobile/4/the-basics/routing first, then fix the imports here.
+**Read this before starting Task 14.** The component, routing, and element names in these tasks have been verified against the installed packages — `.superpowers/sdd/PLAN/api-surface.md` is authoritative. Two constraints that bite immediately: use `<native:bare-text-input>` (there is no `<native:text-input>`), and any new NativePHP UI plugin must be added to the allowlist in `app/Providers/NativeServiceProvider::plugins()` or its elements silently fail to register.
 
 Screens are testable off-device — the docs document `->search('query')`, `->searchResults()` and interaction helpers. Use them; do not defer all screen testing to manual device checks.
 
@@ -1818,11 +1767,129 @@ FAB on the list → new snippet screen with the body **pre-filled from `Clipboar
 
 ---
 
+### Task 13b: Vendor patched C# and Ruby grammars
+
+**Files:**
+- Create: `resources/grammars/csharp.json`, `resources/grammars/ruby.json` (patched copies), `tests/Feature/Highlighting/PatchedGrammarTest.php`
+- Modify: `app/Providers/AppServiceProvider.php`
+
+**Interfaces:**
+- Consumes: the `Phiki` singleton registered in Task 6.
+- Produces: nothing new in PHP; changes the *behaviour* of `Highlighter` for `Language::CSharp` and `Language::Ruby`.
+
+**Why this exists.** Three patterns in Phiki's bundled grammars use constructs oniguruma rejects, so they never compile. Verified during Task 6's review, and confirmed inherent rather than environmental — the Android runtime bundles the same libonig 6.9.7, so the device behaves identically.
+
+| Grammar | Path | Broken pattern | Reason |
+|---|---|---|---|
+| `csharp.json` | `repository.preprocessor.end` | `(?<=$)` | anchor inside look-behind |
+| `csharp.json` | `repository.await-expression.match` and `repository.await-statement.begin` | `(?<!\.\s*)\b(await)\b` | variable-length look-behind |
+| `ruby.json` | `patterns[106].begin` | `(?<={\|{\s+\|[^A-Za-z0-9_:@$]do\|^do\|...)(\|)` | alternation of differing lengths |
+
+The C# one is a **real user-visible defect**, not a cosmetic one: because `preprocessor.end` never compiles, a preprocessor block never closes, so any snippet containing `#region` or `#if` loses highlighting from that point to end of file and **does not recover after `#endregion`**. Measured on the same 6-line class: 50.4% of characters at base foreground plain, 85.7% wrapped in `#region`, 91.3% wrapped in `#if`.
+
+Ruby's is cosmetic — block parameters (`|item|`) render in the base foreground instead of the variable colour. Nothing else in Ruby is affected.
+
+**Note:** the resulting warnings are harmless at runtime — Phiki `@`-suppresses them at `PatternSearcher.php:49`, and they were verified not to throw under a booted Laravel app's warning-to-`ErrorException` handler. Only PHPUnit surfaces them. So this task improves output quality; it does not fix a crash.
+
+- [ ] **Step 1: Write the failing test**
+
+```php
+<?php
+
+use App\Enums\Language;
+use App\Enums\ThemeVariant;
+use App\Support\Highlighting\Highlighter;
+
+function baseForegroundShare(string $code, Language $language): float
+{
+    $runs = collect(app(Highlighter::class)->highlight($code, $language, ThemeVariant::Dark)->toArray())->flatten(1);
+    $total = $runs->sum(fn (array $run): int => mb_strlen($run['text']));
+
+    if ($total === 0) {
+        return 0.0;
+    }
+
+    return $runs->filter(fn (array $run): bool => $run['color'] === '#e1e4e8')
+        ->sum(fn (array $run): int => mb_strlen($run['text'])) / $total;
+}
+
+it('keeps highlighting csharp after a preprocessor block closes', function () {
+    $code = "#region Fields\nint a = 1;\n#endregion\nint b = 2;\nclass C { }";
+
+    expect(baseForegroundShare($code, Language::CSharp))->toBeLessThan(0.7);
+});
+
+it('colours csharp await as a keyword', function () {
+    $runs = collect(app(Highlighter::class)->highlight("async Task M() { await X(); }", Language::CSharp, ThemeVariant::Dark)->toArray())->flatten(1);
+
+    expect($runs->firstWhere('text', 'await')['color'])->not->toBe('#e1e4e8');
+});
+
+it('colours ruby block parameters', function () {
+    $runs = collect(app(Highlighter::class)->highlight("[1].each do |item|\n  item\nend", Language::Ruby, ThemeVariant::Dark)->toArray())->flatten(1);
+
+    expect($runs->firstWhere('text', 'item')['color'])->not->toBe('#e1e4e8');
+});
+
+it('still reconstructs the source exactly for patched grammars', function (Language $language) {
+    $code = "#region A\nint a = 1;\n#endregion";
+    $text = collect(app(Highlighter::class)->highlight($code, $language, ThemeVariant::Dark)->toArray())
+        ->map(fn (array $line): string => collect($line)->pluck('text')->implode(''))
+        ->implode("\n");
+
+    expect($text)->toBe($code);
+})->with([Language::CSharp, Language::Ruby]);
+```
+
+The reconstruction test matters most: editing a grammar changes tokenisation, and the guarantee that runs concatenate back to the exact source must survive the patch.
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `php artisan test tests/Feature/Highlighting/PatchedGrammarTest.php`
+Expected: the first three FAIL (the preprocessor and colour assertions), the reconstruction one PASSES already.
+
+- [ ] **Step 3: Copy and patch the grammars**
+
+Copy `vendor/phiki/phiki/resources/grammars/csharp.json` and `ruby.json` into `resources/grammars/`. Apply exactly these edits and no others:
+
+- `csharp.json`: `repository.preprocessor.end` — `(?<=$)` becomes `$`.
+- `csharp.json`: `repository.await-expression.match` and `repository.await-statement.begin` — remove the leading `(?<!\.\s*)` guard, leaving `\b(await)\b`.
+- `ruby.json`: `patterns[106].begin` — replace the variable-length look-behind with a form oniguruma accepts. Removing the look-behind entirely is acceptable if the reconstruction test still passes; prefer the smallest change that compiles.
+
+Record each before/after string verbatim in your report. Do not reformat the JSON — a whole-file reindent makes the diff unreviewable and future upstream re-syncs impossible.
+
+- [ ] **Step 4: Register the patched grammars on the singleton**
+
+In `AppServiceProvider::register()`, extend the existing `Phiki` singleton so it registers the patched grammars from `resources/grammars/` before returning. Use Phiki's own registration API (`$phiki->environment()->grammars->register(...)`) — do not overwrite files inside `vendor/`.
+
+- [ ] **Step 5: Run tests to verify they pass**
+
+Run: `php artisan test tests/Feature/Highlighting/PatchedGrammarTest.php` then the full `php artisan test`.
+Expected: PASS, with no reduction in the existing suite. The C#/Ruby PHPUnit warnings should drop to zero — confirm and report the count.
+
+- [ ] **Step 6: Keep Task 13's bundle pruning in sync**
+
+Task 13 prunes unused grammars from the app bundle. These two patched files live in `resources/`, not `vendor/`, so they must survive pruning while the `vendor/` originals for these two languages become dead weight. Note this explicitly in your report so Task 13's exclusion list accounts for it.
+
+- [ ] **Step 7: Commit**
+
+```bash
+vendor/bin/pint --dirty
+git add resources/grammars/ app/Providers/AppServiceProvider.php tests/
+git commit -m "fix: vendor patched csharp and ruby grammars for oniguruma compatibility"
+```
+
+**Upstream:** these are genuine bugs in Phiki's bundled grammars under oniguruma. Worth an issue on `phikiphp/phiki` with the three patterns and the `#region` reproduction, so this vendoring can eventually be dropped.
+
+---
+
 ## Definition of done for v1
 
 - [ ] All three Phase 0 spikes run, with results recorded in this document
 - [ ] `php artisan test` green
-- [ ] `vendor/bin/pint --test` clean
+- [ ] `vendor/bin/pint --dirty` clean, and clean on every file this branch created or modified
+
+  **Not** whole-repo `pint --test`. Five files inherited from the starter template fail it and are touched by no task: `bootstrap/providers.php`, `config/auth.php`, `config/database.php`, `app/Models/User.php`, `database/factories/UserFactory.php`. Reformatting them is out of scope for v1 and would bulk out the branch diff with unrelated churn. `--dirty` is also the project convention in `CLAUDE.md`. If you want the repo uniformly formatted, do it as its own commit on top, not inside a feature task.
 - [ ] Capture → save → find → copy works end-to-end on a physical iPhone **and** a physical Android device
 - [ ] Export → uninstall → reinstall → import returns every snippet
 - [ ] All 16 languages verified to still highlight after bundle pruning
