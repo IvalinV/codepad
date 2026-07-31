@@ -49,6 +49,27 @@ final class PhikiTokenMapper
         return HighlightedCode::fromArray($lines);
     }
 
+    /**
+     * The same shape `map()` produces, for source Phiki could not tokenise at
+     * all: one run per line, uncoloured beyond the theme's base foreground.
+     * Lines are split with the pattern `Phiki\TextMate\Tokenizer` uses, so the
+     * line count matches what a successful highlight would have returned, and
+     * concatenating the runs reproduces $code exactly.
+     *
+     * @param  ?string  $themeForeground  As on map(); falls back to self::DEFAULT_COLOR when omitted or null.
+     */
+    public function mapPlainText(string $code, ?string $themeForeground = null): HighlightedCode
+    {
+        $color = $themeForeground ?? self::DEFAULT_COLOR;
+
+        $lines = array_map(
+            fn (string $line): array => $line === '' ? [] : [['text' => $line, 'color' => $color]],
+            array_values(preg_split("/\R/u", $code)),
+        );
+
+        return HighlightedCode::fromArray($lines);
+    }
+
     private function resolveColor(HighlightedToken $highlightedToken, ?string $themeForeground): string
     {
         $settings = array_values($highlightedToken->settings)[0] ?? null;
