@@ -1,7 +1,9 @@
 <?php
 
 use App\Enums\Language;
+use App\Enums\ThemeVariant;
 use App\Providers\AppServiceProvider;
+use Illuminate\Support\Collection;
 use Phiki\Grammar\Grammar;
 
 /**
@@ -21,6 +23,13 @@ use Phiki\Grammar\Grammar;
  * This test re-derives the same closure on every run and asserts none of it
  * appears in the exclusion list, so a newly added language that isn't yet
  * covered by the closure fails loudly, here, instead of on a user's phone.
+ *
+ * The same pruning covers 58 theme files, and `ThemeVariant` is exposed to
+ * exactly the same staleness: adding a third variant whose Phiki theme is on
+ * the exclusion list fails only two incidental hard-coded counts, both of
+ * which invite being bumped. The second test below closes that half. Themes
+ * need no closure walk — no theme file declares an `include` and
+ * `Phiki\Theme\Theme` has no include mechanism — so the required set is flat.
  */
 
 /**
@@ -150,6 +159,20 @@ function grammarIncludeClosure(array $seedLanguageByGrammar, array $scopeToValue
     return $reachedVia;
 }
 
+/**
+ * The Phiki resource files under `vendor/phiki/phiki/resources/{$subdirectory}/`
+ * that production bundling deletes, keyed by basename without the extension.
+ *
+ * @return Collection<string, int>
+ */
+function excludedPhikiResources(string $subdirectory): Collection
+{
+    return collect(config('nativephp.cleanup_exclude_files'))
+        ->filter(fn (string $pattern): bool => str_starts_with($pattern, "vendor/phiki/phiki/resources/{$subdirectory}/"))
+        ->map(fn (string $pattern): string => basename($pattern, '.json'))
+        ->flip();
+}
+
 /** Renders "Language::Php -> html -> ... -> kotlin" for a failure message. */
 function describeClosurePath(string $value, array $reachedVia, array $seedLanguageByGrammar): string
 {
@@ -177,10 +200,7 @@ it('keeps every grammar reachable from Language::cases() off the bundle exclusio
 
     $reachedVia = grammarIncludeClosure($seedLanguageByGrammar, grammarScopeToValueMap(), $patchedGrammars);
 
-    $excludedGrammars = collect(config('nativephp.cleanup_exclude_files'))
-        ->filter(fn (string $pattern): bool => str_starts_with($pattern, 'vendor/phiki/phiki/resources/grammars/'))
-        ->map(fn (string $pattern): string => basename($pattern, '.json'))
-        ->flip();
+    $excludedGrammars = excludedPhikiResources('grammars');
 
     $requiredButExcluded = [];
 
@@ -208,6 +228,32 @@ it('keeps every grammar reachable from Language::cases() off the bundle exclusio
         "error: the app builds and every existing test passes (the dev tree is unpruned), then highlighting\n".
         "that language throws an uncaught ErrorException the first time a user opens it on a device.\n\n".
         "Fix by removing the matching 'vendor/phiki/phiki/resources/grammars/<name>.json' line(s) from\n".
+        'cleanup_exclude_files in config/nativephp.php.',
+        implode("\n", $requiredButExcluded)
+    ));
+});
+
+it('keeps every theme required by ThemeVariant::cases() off the bundle exclusion list', function (): void {
+    $excludedThemes = excludedPhikiResources('themes');
+
+    $requiredButExcluded = [];
+
+    foreach (ThemeVariant::cases() as $case) {
+        $value = $case->phikiTheme()->value;
+
+        if ($excludedThemes->has($value)) {
+            $requiredButExcluded[] = sprintf('  - %s.json (ThemeVariant::%s)', $value, $case->name);
+        }
+    }
+
+    expect($requiredButExcluded)->toBe([], sprintf(
+        "The following theme(s) are required by App\\Enums\\ThemeVariant but are listed in\n".
+        "config('nativephp.cleanup_exclude_files'):\n\n".
+        "%s\n\n".
+        "Deleting a theme Phiki still references during production bundling is a RUNTIME error, not a build\n".
+        "error: the app builds and every existing test passes (the dev tree is unpruned), then rendering a\n".
+        "snippet in that theme fails the first time a user selects it on a device.\n\n".
+        "Fix by removing the matching 'vendor/phiki/phiki/resources/themes/<name>.json' line(s) from\n".
         'cleanup_exclude_files in config/nativephp.php.',
         implode("\n", $requiredButExcluded)
     ));
