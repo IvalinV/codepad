@@ -12,6 +12,10 @@
     "license": "MIT",
     "repositories": [
         {
+            "type": "vcs",
+            "url": "https://github.com/NativePHP/mobile-ui"
+        },
+        {
             "name": "nativephp-plugins",
             "type": "composer",
             "url": "https://plugins.nativephp.com"
@@ -24,6 +28,7 @@
         "laravel/tinker": "^3.0",
         "nativephp/mobile": "~4.0.0",
         "nativephp/mobile-clipboard": "^1.0",
+        "nativephp/mobile-ui": "^0.3.0",
         "phiki/phiki": "^2.2"
     },
     "require-dev": {
