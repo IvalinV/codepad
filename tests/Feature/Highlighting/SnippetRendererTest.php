@@ -17,6 +17,22 @@ it('creates one render per theme', function () {
     expect($snippet->renders()->count())->toBe(2);
 });
 
+/*
+| The body is validated as `['required','string','max:102400']`, which says
+| nothing about encoding, so an ordinary paste of Latin-1 text reaches
+| refresh() as invalid UTF-8. Highlighting it must degrade rather than throw:
+| refresh() runs synchronously on save, so a throw here costs the user the
+| snippet they just captured.
+*/
+it('still persists both renders for a body that is not valid UTF-8', function () {
+    $snippet = Snippet::factory()->create(['body' => "caf\xE9"]);
+
+    $this->renderer->refresh($snippet);
+
+    expect($snippet->renders()->count())->toBe(2)
+        ->and($this->renderer->renderFor($snippet->fresh(), ThemeVariant::Light))->not->toBeNull();
+});
+
 it('returns a render for a fresh snippet', function () {
     $snippet = Snippet::factory()->create();
     $this->renderer->refresh($snippet);

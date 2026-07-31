@@ -110,6 +110,17 @@ it('carries the theme base foreground into the fallback when only the grammar is
     expect($colors->all())->toBe(['#e1e4e8']);
 });
 
+it('falls back to plain text for a body that is not valid UTF-8', function () {
+    $code = "caf\xE9\nbar";
+
+    $result = app(Highlighter::class)->highlight($code, Language::Php, ThemeVariant::Dark);
+
+    expect($result)->toBeInstanceOf(HighlightedCode::class)
+        ->and($result->lineCount())->toBe(2)
+        ->and(reconstructedSource($result))->toBe(mb_scrub($code, 'UTF-8'))
+        ->and(mb_check_encoding(reconstructedSource($result), 'UTF-8'))->toBeTrue();
+});
+
 it('uses real highlighting rather than the fallback when nothing is missing', function () {
     $colors = collect(app(Highlighter::class)->highlight("<?php\necho 'hi';", Language::Php, ThemeVariant::Dark)->toArray())
         ->flatten(1)

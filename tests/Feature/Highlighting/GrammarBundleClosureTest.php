@@ -205,7 +205,8 @@ it('keeps every grammar reachable from Language::cases() off the bundle exclusio
     $requiredButExcluded = [];
 
     foreach (array_keys($reachedVia) as $value) {
-        // Unreached today: neither patched grammar's vendor original is on the
+        // This branch does execute, for both csharp and ruby, but its effect
+        // is nil today: neither patched grammar's vendor original is on the
         // exclusion list (both are kept, so VendoredGrammarDriftTest can
         // re-derive the patched copies from them), so the check below would
         // pass for them anyway. Kept as a guard rather than removed — the
