@@ -7,6 +7,7 @@
         <native:select
             :options="$languages"
             :value="$snippet->language->label()"
+            a11y-label="Language"
             @change="changeLanguage" />
         <native:spacer />
         <native:text class="text-xs text-theme-on-surface-variant">{{ $totalLines }} {{ Str::plural('line', $totalLines) }}</native:text>

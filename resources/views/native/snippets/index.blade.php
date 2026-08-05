@@ -51,4 +51,5 @@
     @endif
 </native:column>
 
-<native:fab icon="add" @tap="create" />
+{{-- Icon-only, so the label is the only thing a screen reader has to announce. --}}
+<native:fab icon="add" a11y-label="Capture a new snippet" @tap="create" />

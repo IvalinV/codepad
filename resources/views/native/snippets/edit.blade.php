@@ -16,6 +16,7 @@
 
     <native:row class="w-full items-center px-4">
         <native:select
+            label="Language"
             :options="$languages"
             :value="$languageLabel"
             @change="changeLanguage" />
