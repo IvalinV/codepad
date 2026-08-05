@@ -135,7 +135,7 @@ iOS: it must not be under `Library/Caches` or `tmp`, and must not carry the `isE
 **Interfaces:**
 - Produces: `Clipboard` facade available app-wide; `RefreshDatabase` active for feature tests.
 
-- [ ] **Step 1: Move to v4 and install the clipboard plugin**
+- [x] **Step 1: Move to v4 and install the clipboard plugin**
 
 ```bash
 composer require "nativephp/mobile:~4.0.0"
@@ -147,7 +147,7 @@ composer require phiki/phiki
 
 The `plugins.nativephp.com` repository is already declared in `composer.json`. The v4 upgrade's only breaking change is that `Device`, `Dialog`, `File` and `System` moved into core; you have no application code using them.
 
-- [ ] **Step 2: Set real app identity**
+- [x] **Step 2: Set real app identity**
 
 In `.env` and `.env.example`:
 
@@ -160,7 +160,7 @@ NATIVEPHP_APP_VERSION_CODE="1"
 
 The starter ships `APP_NAME=Laravel` and a placeholder ID (`com.ivalinvenkov.crystalambersilver`). The app ID is **permanent once published to either store** — change it now.
 
-- [ ] **Step 3: Enable `RefreshDatabase` for feature tests**
+- [x] **Step 3: Enable `RefreshDatabase` for feature tests**
 
 In `tests/Pest.php`, uncomment the trait:
 
@@ -170,16 +170,16 @@ pest()->extend(Tests\TestCase::class)
     ->in('Feature');
 ```
 
-- [ ] **Step 4: Remove `URL::forceHttps()`**
+- [x] **Step 4: Remove `URL::forceHttps()`**
 
 In `app/Providers/AppServiceProvider.php`, delete the `URL::forceHttps()` call and the now-unused `use Illuminate\Support\Facades\URL;`. On device the app is not served over HTTPS — iOS uses a `php://` scheme — and forcing HTTPS on generated URLs is wrong there.
 
-- [ ] **Step 5: Verify the suite still runs**
+- [x] **Step 5: Verify the suite still runs**
 
 Run: `php artisan test`
 Expected: PASS (the two example tests).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 vendor/bin/pint --dirty
@@ -198,7 +198,7 @@ git commit -m "chore: upgrade to NativePHP Mobile v4, add clipboard and phiki, s
 **Interfaces:**
 - Produces: `Language::tryFrom(string): ?Language`, `Language::grammar(): Grammar`, `Language::label(): string`, `Language::PlainText`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```php
 <?php
@@ -220,12 +220,12 @@ it('resolves from a stored string value', function () {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `php artisan test tests/Unit/Enums/LanguageTest.php`
 Expected: FAIL — `Class "App\Enums\Language" not found`.
 
-- [ ] **Step 3: Write the enum**
+- [x] **Step 3: Write the enum**
 
 ```php
 <?php
@@ -301,12 +301,12 @@ enum Language: string
 
 **The `Grammar::` case names above have been verified against `vendor/phiki/phiki/src/Grammar/Grammar.php` and are correct as written** — including `Grammar::Shellscript` for `Language::Bash`, which is the real case name (`Grammar::Bash` does not exist and is a fatal `Error`). Do not "correct" it back to `Bash`. See `.superpowers/sdd/PLAN/api-surface.md` for the full verified surface.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `php artisan test tests/Unit/Enums/LanguageTest.php`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 vendor/bin/pint --dirty
@@ -325,7 +325,7 @@ git commit -m "feat: add Language enum mapping the allowlist to phiki grammars"
 **Interfaces:**
 - Produces: `ThemeVariant::Light`, `ThemeVariant::Dark`, `ThemeVariant::phikiTheme(): Theme`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```php
 <?php
@@ -342,12 +342,12 @@ it('maps each variant to a phiki theme', function (ThemeVariant $variant) {
 })->with(ThemeVariant::cases());
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `php artisan test tests/Unit/Enums/ThemeVariantTest.php`
 Expected: FAIL — `Class "App\Enums\ThemeVariant" not found`.
 
-- [ ] **Step 3: Write the enum**
+- [x] **Step 3: Write the enum**
 
 ```php
 <?php
@@ -373,12 +373,12 @@ enum ThemeVariant: string
 
 Verify both `Theme::` cases exist in `vendor/phiki/phiki/src/Theme/Theme.php`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `php artisan test tests/Unit/Enums/ThemeVariantTest.php`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 vendor/bin/pint --dirty
@@ -399,14 +399,14 @@ git commit -m "feat: add ThemeVariant enum"
 
 **Design note:** renders live in their own table deliberately. The list screen never needs them, so they stay out of `select *` on the hot query; "rebuild every render" becomes a truncate rather than a migration plus backfill; and a third theme later is a row, not a schema change. Absence of a row is a meaningful state — it means "not highlighted yet", which is what lets the save path persist the body immediately without null-column ambiguity.
 
-- [ ] **Step 1: Generate the scaffolding**
+- [x] **Step 1: Generate the scaffolding**
 
 ```bash
 php artisan make:model Snippet --migration --factory --no-interaction
 php artisan make:model SnippetRender --migration --no-interaction
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```php
 <?php
@@ -467,12 +467,12 @@ it('permits only one render per snippet and theme', function () {
 });
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `php artisan test tests/Feature/Models/SnippetTest.php`
 Expected: FAIL — no such table / undefined relationship.
 
-- [ ] **Step 4: Write the migrations**
+- [x] **Step 4: Write the migrations**
 
 `create_snippets_table`:
 
@@ -503,7 +503,7 @@ Schema::create('snippet_renders', function (Blueprint $table): void {
 });
 ```
 
-- [ ] **Step 5: Write the models**
+- [x] **Step 5: Write the models**
 
 `app/Models/Snippet.php`:
 
@@ -570,7 +570,7 @@ class SnippetRender extends Model
 }
 ```
 
-- [ ] **Step 6: Write the factory**
+- [x] **Step 6: Write the factory**
 
 ```php
 <?php
@@ -600,12 +600,12 @@ class SnippetFactory extends Factory
 }
 ```
 
-- [ ] **Step 7: Run test to verify it passes**
+- [x] **Step 7: Run test to verify it passes**
 
 Run: `php artisan test tests/Feature/Models/SnippetTest.php`
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 vendor/bin/pint --dirty
@@ -629,7 +629,7 @@ git commit -m "feat: add snippets and snippet_renders schema"
 
 **Revised approach — read this before starting.** An earlier draft of this plan parsed Phiki's HTML output with `DOMDocument`, because the public docs only document `codeToHtml()`. That was wrong: the installed `phiki/phiki` v2.2.1 **does** expose a structured-token API. Use it. There is no HTML parsing in this task.
 
-- [ ] **Step 1: Discover the real token API before writing anything**
+- [x] **Step 1: Discover the real token API before writing anything**
 
 Read these in the installed package and write down the exact signatures:
 - `vendor/phiki/phiki/src/Phiki.php` — the signatures of `codeToTokens()` and `codeToHighlightedTokens()`. Note the parameter order and whether a theme is required.
@@ -645,7 +645,7 @@ Record the real signature and token shape in your report. **If the actual signat
 
 If a token's colour can be absent or null for unstyled text, fall back to the constant `PhikiTokenMapper::DEFAULT_COLOR` rather than emitting a run with no colour.
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```php
 <?php
@@ -703,12 +703,12 @@ it('leaves shorter input untouched when truncating', function () {
 
 **The reconstruction test is the important one.** It proves no source text is silently dropped in the mapping — the failure mode that would otherwise ship a snippet missing characters. Do not weaken it to `toContain` if it fails; fix the mapper.
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `php artisan test tests/Unit/Highlighting/PhikiTokenMapperTest.php`
 Expected: FAIL — `Class "App\Support\Highlighting\PhikiTokenMapper" not found`.
 
-- [ ] **Step 4: Write `HighlightedCode`**
+- [x] **Step 4: Write `HighlightedCode`**
 
 ```php
 <?php
@@ -744,7 +744,7 @@ final class HighlightedCode
 }
 ```
 
-- [ ] **Step 5: Write `PhikiTokenMapper`**
+- [x] **Step 5: Write `PhikiTokenMapper`**
 
 Map Phiki's `HighlightedToken[][]` to the stored shape: the outer array is lines, the inner array is that line's tokens, and each token becomes one `['text' => ..., 'color' => ...]` run. Use the real property/accessor names you recorded in Step 1 — do not guess them.
 
@@ -755,12 +755,12 @@ Requirements:
 - Preserve line order and token order exactly — the reconstruction test depends on it.
 - Add a PHPDoc array shape for the `$highlightedTokens` parameter describing what it holds.
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [x] **Step 6: Run tests to verify they pass**
 
 Run: `php artisan test tests/Unit/Highlighting/PhikiTokenMapperTest.php`
 Expected: PASS. If the line-count assertions fail, first check whether Phiki reports a trailing empty line for your source; adjust the expected count to match reality, but **do not** relax the reconstruction test.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 vendor/bin/pint --dirty
@@ -789,7 +789,7 @@ The resolution path, verified against the installed `phiki/phiki` v2.2.1:
 (new Phiki)->environment()->themes->resolve($theme)->base()->foreground
 ```
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```php
 <?php
@@ -849,12 +849,12 @@ The two base-foreground tests are the point of this task — they fail if `Highl
 
 The final dataset test is cheap insurance: it exercises all 16 `Language` cases through a real Phiki call, so a grammar case that exists in the enum but blows up at highlight time is caught here rather than on a device.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `php artisan test tests/Unit/Highlighting/HighlighterTest.php`
 Expected: FAIL — `Class "App\Support\Highlighting\Highlighter" not found`.
 
-- [ ] **Step 3: Write the service**
+- [x] **Step 3: Write the service**
 
 Requirements:
 - Constructor-promoted, readonly dependencies: `Phiki $phiki` and `PhikiTokenMapper $mapper`.
@@ -863,7 +863,7 @@ Requirements:
 - Resolve the base foreground **once per call**, not per token.
 - If the resolved base foreground is null or empty, pass `null` to the mapper so its own last-resort constant applies — do not substitute a colour of your own.
 
-- [ ] **Step 4: Register `Phiki` in the container**
+- [x] **Step 4: Register `Phiki` in the container**
 
 In `app/Providers/AppServiceProvider::register()`:
 
@@ -873,12 +873,12 @@ $this->app->singleton(Phiki::class, fn (): Phiki => new Phiki);
 
 Add `use Phiki\Phiki;` at the top. Registering it as a singleton matters: Phiki lazily parses grammar and theme JSON from disk and caches it on the instance, so a fresh instance per call would re-read and re-parse those files every time — on a phone, for every snippet opened.
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `php artisan test tests/Unit/Highlighting/HighlighterTest.php`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 vendor/bin/pint --dirty
@@ -898,7 +898,7 @@ git commit -m "feat: add Highlighter wrapping phiki behind a stable interface"
 
 **The invariant this class exists to protect:** renders are derived from `(body, language, theme)`. If the body or language changes and the renders don't, the app displays PHP colouring over Python. `hashFor()` is the guard; `renderFor()` returns `null` on mismatch so the view falls back to plain text rather than lying.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```php
 <?php
@@ -961,12 +961,12 @@ it('replaces rather than duplicates renders on repeated refresh', function () {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `php artisan test tests/Feature/Highlighting/SnippetRendererTest.php`
 Expected: FAIL — `Class "App\Support\Highlighting\SnippetRenderer" not found`.
 
-- [ ] **Step 3: Write the service**
+- [x] **Step 3: Write the service**
 
 ```php
 <?php
@@ -1012,12 +1012,12 @@ final class SnippetRenderer
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `php artisan test tests/Feature/Highlighting/SnippetRendererTest.php`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 vendor/bin/pint --dirty
@@ -1038,7 +1038,7 @@ git commit -m "feat: add SnippetRenderer with hash-guarded derived render cache"
 
 **Rule:** never write the derived label into the `title` column. Keeping user intent and our guess in separate places is what lets you tell them apart later.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```php
 <?php
@@ -1074,12 +1074,12 @@ it('treats an empty-string title as absent', function () {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `php artisan test tests/Unit/Models/SnippetTitleTest.php`
 Expected: FAIL — `Call to undefined method App\Models\Snippet::displayTitle()`.
 
-- [ ] **Step 3: Add the method to `Snippet`**
+- [x] **Step 3: Add the method to `Snippet`**
 
 ```php
 public function displayTitle(): string
@@ -1102,12 +1102,12 @@ public function displayTitle(): string
 
 Add `use Illuminate\Support\Str;`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `php artisan test tests/Unit/Models/SnippetTitleTest.php`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 vendor/bin/pint --dirty
@@ -1128,7 +1128,7 @@ git commit -m "feat: derive a display title from the first non-blank line"
 
 **`LIKE`, not FTS5.** FTS5's availability in the embedded runtime is undocumented, and `LIKE` over a personal library is instant. This is also the framework's own documented search pattern. Revisit only if the library reaches thousands of snippets.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```php
 <?php
@@ -1190,12 +1190,12 @@ it('orders by most recently updated', function () {
 
 The wildcard-escaping test matters: an unescaped `%` in a search box silently matches everything, which reads as "search is broken" rather than as a bug.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `php artisan test tests/Feature/Models/SnippetSearchTest.php`
 Expected: FAIL — undefined scope.
 
-- [ ] **Step 3: Add the scopes to `Snippet`**
+- [x] **Step 3: Add the scopes to `Snippet`**
 
 ```php
 /** @param  Builder<self>  $query */
@@ -1232,12 +1232,12 @@ public function scopeRecent(Builder $query): void
 
 Add `use Illuminate\Database\Eloquent\Builder;`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `php artisan test tests/Feature/Models/SnippetSearchTest.php`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 vendor/bin/pint --dirty
@@ -1256,7 +1256,7 @@ git commit -m "feat: add search, language filter and recency scopes"
 **Interfaces:**
 - Produces: `StoreSnippetRequest::rules(): array`, `UpdateSnippetRequest::rules(): array`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```php
 <?php
@@ -1295,12 +1295,12 @@ it('rejects a language outside the allowlist', function () {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `php artisan test tests/Feature/Requests/SnippetRequestTest.php`
 Expected: FAIL — class not found.
 
-- [ ] **Step 3: Generate and write the requests**
+- [x] **Step 3: Generate and write the requests**
 
 ```bash
 php artisan make:request StoreSnippetRequest --no-interaction
@@ -1336,12 +1336,12 @@ Add `use App\Enums\Language;` and `use Illuminate\Validation\Rule;`.
 
 Note `max:102400` on a string counts **characters**, not bytes. That's close enough for the guard's purpose (preventing a hang) and is simpler than a byte-exact rule.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `php artisan test tests/Feature/Requests/SnippetRequestTest.php`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 vendor/bin/pint --dirty
@@ -1363,7 +1363,7 @@ git commit -m "feat: validate snippets with a 100 KB body cap"
 
 **Why the shape is lopsided:** export goes out through `Share::file()`, but there is **no file picker** on this platform — `File` offers only `move()` and `copy()`, and the marketplace has no document-picker plugin. So import is a paste box fed by `Clipboard::readText()`. Renders are deliberately not exported; they are derived and get rebuilt on import.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```php
 <?php
@@ -1439,12 +1439,12 @@ it('skips entries with an unknown language rather than aborting', function () {
 
 The "adds rather than replaces" test encodes a deliberate choice: an import must never be able to destroy the library it is merging into.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `php artisan test tests/Feature/SnippetArchiveTest.php`
 Expected: FAIL — class not found.
 
-- [ ] **Step 3: Write the archive**
+- [x] **Step 3: Write the archive**
 
 ```php
 <?php
@@ -1514,12 +1514,12 @@ final class SnippetArchive
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `php artisan test tests/Feature/SnippetArchiveTest.php`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 vendor/bin/pint --dirty
@@ -1536,7 +1536,7 @@ git commit -m "feat: add JSON export and additive import"
 
 **Why:** the docs are explicit — migrations run on **every app start**, and *"You don't want to accidentally delete your user's data when they update your app."* Since there is no backend, a destructive migration shipped in an update is the single most likely way you personally destroy the user's library. This test is the guard.
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```php
 <?php
@@ -1578,12 +1578,12 @@ Add `use Illuminate\Support\Facades\File;` and `use Symfony\Component\Finder\Spl
 
 The second test will fail the moment someone adds a `dropIfExists` in a new migration — which is exactly when you want to be stopped. The `down()` methods of the original create-migrations are the expected exception; if they trip it, narrow the check to migrations dated after your 1.0 release.
 
-- [ ] **Step 2: Run the test**
+- [x] **Step 2: Run the test**
 
 Run: `php artisan test tests/Feature/MigrationSafetyTest.php`
 Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 vendor/bin/pint --dirty
@@ -1600,14 +1600,14 @@ git commit -m "test: guard against destructive migrations reaching users"
 
 **Why:** Phiki is ~13.2 MB in `vendor` — enough that it [broke Vapor deploys in Laravel 12.29](https://github.com/laravel/framework/issues/57117). You use 16 of its 200+ grammars and 2 of its 50+ themes. Everything else is dead weight in the app bundle.
 
-- [ ] **Step 1: Find the grammar and theme directories**
+- [x] **Step 1: Find the grammar and theme directories**
 
 ```bash
 du -sh vendor/phiki/phiki/*
 ls vendor/phiki/phiki/resources 2>/dev/null || find vendor/phiki/phiki -maxdepth 2 -type d
 ```
 
-- [ ] **Step 2: Add exclusions to `cleanup_exclude_files` in `config/nativephp.php`**
+- [x] **Step 2: Add exclusions to `cleanup_exclude_files` in `config/nativephp.php`**
 
 Exclude every grammar file except the 16 backing `Language`, and every theme except `github-light` and `github-dark`. Follow the existing array's pattern (read the surrounding config comments for the expected glob syntax).
 
@@ -1615,9 +1615,9 @@ Exclude every grammar file except the 16 backing `Language`, and every theme exc
 
 Build for a device and open a snippet in each of the 16 languages. **Deleting a grammar Phiki still references is a runtime error, not a build error** — it will only surface when a user opens that language. Check all 16 by hand.
 
-- [ ] **Step 4: Record the before/after bundle size in the commit message**
+- [x] **Step 4: Record the before/after bundle size in the commit message**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 vendor/bin/pint --dirty
@@ -1791,7 +1791,7 @@ Ruby's is cosmetic — block parameters (`|item|`) render in the base foreground
 
 **Note:** the resulting warnings are harmless at runtime — Phiki `@`-suppresses them at `PatternSearcher.php:49`, and they were verified not to throw under a booted Laravel app's warning-to-`ErrorException` handler. Only PHPUnit surfaces them. So this task improves output quality; it does not fix a crash.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```php
 <?php
@@ -1843,12 +1843,12 @@ it('still reconstructs the source exactly for patched grammars', function (Langu
 
 The reconstruction test matters most: editing a grammar changes tokenisation, and the guarantee that runs concatenate back to the exact source must survive the patch.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `php artisan test tests/Feature/Highlighting/PatchedGrammarTest.php`
 Expected: the first three FAIL (the preprocessor and colour assertions), the reconstruction one PASSES already.
 
-- [ ] **Step 3: Copy and patch the grammars**
+- [x] **Step 3: Copy and patch the grammars**
 
 Copy `vendor/phiki/phiki/resources/grammars/csharp.json` and `ruby.json` into `resources/grammars/`. Apply exactly these edits and no others:
 
@@ -1858,20 +1858,20 @@ Copy `vendor/phiki/phiki/resources/grammars/csharp.json` and `ruby.json` into `r
 
 Record each before/after string verbatim in your report. Do not reformat the JSON — a whole-file reindent makes the diff unreviewable and future upstream re-syncs impossible.
 
-- [ ] **Step 4: Register the patched grammars on the singleton**
+- [x] **Step 4: Register the patched grammars on the singleton**
 
 In `AppServiceProvider::register()`, extend the existing `Phiki` singleton so it registers the patched grammars from `resources/grammars/` before returning. Use Phiki's own registration API (`$phiki->environment()->grammars->register(...)`) — do not overwrite files inside `vendor/`.
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `php artisan test tests/Feature/Highlighting/PatchedGrammarTest.php` then the full `php artisan test`.
 Expected: PASS, with no reduction in the existing suite. The C#/Ruby PHPUnit warnings should drop to zero — confirm and report the count.
 
-- [ ] **Step 6: Keep Task 13's bundle pruning in sync**
+- [x] **Step 6: Keep Task 13's bundle pruning in sync**
 
 Task 13 prunes unused grammars from the app bundle. These two patched files live in `resources/`, not `vendor/`, so they must survive pruning while the `vendor/` originals for these two languages become dead weight. Note this explicitly in your report so Task 13's exclusion list accounts for it.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 vendor/bin/pint --dirty
@@ -1886,14 +1886,14 @@ git commit -m "fix: vendor patched csharp and ruby grammars for oniguruma compat
 ## Definition of done for v1
 
 - [ ] All three Phase 0 spikes run, with results recorded in this document
-- [ ] `php artisan test` green
-- [ ] `vendor/bin/pint --dirty` clean, and clean on every file this branch created or modified
+- [x] `php artisan test` green
+- [x] `vendor/bin/pint --dirty` clean, and clean on every file this branch created or modified
 
   **Not** whole-repo `pint --test`. Five files inherited from the starter template fail it and are touched by no task: `bootstrap/providers.php`, `config/auth.php`, `config/database.php`, `app/Models/User.php`, `database/factories/UserFactory.php`. Reformatting them is out of scope for v1 and would bulk out the branch diff with unrelated churn. `--dirty` is also the project convention in `CLAUDE.md`. If you want the repo uniformly formatted, do it as its own commit on top, not inside a feature task.
 - [ ] Capture → save → find → copy works end-to-end on a physical iPhone **and** a physical Android device
 - [ ] Export → uninstall → reinstall → import returns every snippet
 - [ ] All 16 languages verified to still highlight after bundle pruning
-- [ ] App identity set; no placeholder values remain in `.env.example`
+- [x] App identity set; no placeholder values remain in `.env.example`
 
 ## Explicitly out of scope for v1
 
