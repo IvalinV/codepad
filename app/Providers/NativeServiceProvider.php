@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Native\Mobile\Providers\ShareServiceProvider;
 use Native\Mobile\UI\NativeUIServiceProvider as MobileUIServiceProvider;
 use NativePHP\Clipboard\ClipboardServiceProvider;
 
@@ -38,6 +39,7 @@ class NativeServiceProvider extends ServiceProvider
         return [
             ClipboardServiceProvider::class,
             MobileUIServiceProvider::class,
+            ShareServiceProvider::class,
         ];
     }
 }

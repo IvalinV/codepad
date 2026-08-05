@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b9acc2c82ac30de17b9074d01ec2585b",
+    "content-hash": "264efd903c438fee8d405ea3dc616166",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -2709,6 +2709,70 @@
                 "source": "https://github.com/NativePHP/mobile-clipboard/tree/1.0.0"
             },
             "time": "2026-07-19T02:38:14+00:00"
+        },
+        {
+            "name": "nativephp/mobile-share",
+            "version": "1.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/NativePHP/mobile-share.git",
+                "reference": "0548a37912b3080768aa3db47d811fdded8f9a9c"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/NativePHP/mobile-share/zipball/0548a37912b3080768aa3db47d811fdded8f9a9c",
+                "reference": "0548a37912b3080768aa3db47d811fdded8f9a9c",
+                "shasum": ""
+            },
+            "require": {
+                "nativephp/mobile": "^3.0 || ^4.0",
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.0",
+                "pestphp/pest": "^2.7|^3.0|^4.0"
+            },
+            "type": "nativephp-plugin",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Native\\Mobile\\Providers\\ShareServiceProvider"
+                    ]
+                },
+                "nativephp": {
+                    "manifest": "nativephp.json"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Native\\Mobile\\Providers\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "NativePHP",
+                    "email": "support@nativephp.com"
+                }
+            ],
+            "description": "Native share sheet plugin for NativePHP Mobile",
+            "support": {
+                "source": "https://github.com/NativePHP/mobile-share/tree/1.0.2",
+                "issues": "https://github.com/NativePHP/mobile-share/issues"
+            },
+            "time": "2026-07-15T18:46:27+00:00"
         },
         {
             "name": "nativephp/mobile-ui",
