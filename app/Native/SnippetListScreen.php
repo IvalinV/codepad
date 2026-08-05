@@ -41,7 +41,7 @@ class SnippetListScreen extends NativeComponent
 
         return view('native.snippets.index', [
             'snippets' => $snippets,
-            'languages' => Language::cases(),
+            'languages' => $this->languageFilters(),
             'activeLanguage' => $this->activeLanguage(),
             'hasFilters' => $this->hasFilters(),
             'libraryIsEmpty' => $snippets->isEmpty() && ! $this->hasFilters(),
@@ -84,6 +84,38 @@ class SnippetListScreen extends NativeComponent
             array_values(array_filter($lines, fn (string $line): bool => trim($line) !== '')),
             0,
             self::PREVIEW_LINES,
+        ));
+    }
+
+    /**
+     * The languages worth offering as filters.
+     *
+     * Only those the library actually holds: the full enum offers sixteen
+     * chips to a user who owns three, and the thirteen extras are filters
+     * that can only ever return nothing. Derived from the whole library
+     * rather than from the current query, so the row does not reflow on
+     * every keystroke while the user is searching.
+     *
+     * Ordered by filtering `Language::cases()` rather than by the database,
+     * which keeps chip positions fixed — ordering by insertion or by
+     * frequency would move a chip out from under the thumb reaching for it.
+     *
+     * Empty below two languages: narrowing an all-PHP library to PHP changes
+     * nothing, so a lone chip is chrome rather than a control.
+     *
+     * @return array<int, Language>
+     */
+    private function languageFilters(): array
+    {
+        $present = Snippet::query()->distinct()->pluck('language')->all();
+
+        if (count($present) < 2) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            Language::cases(),
+            fn (Language $language): bool => in_array($language, $present, true),
         ));
     }
 

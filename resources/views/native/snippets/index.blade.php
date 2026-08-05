@@ -7,14 +7,24 @@
         placeholder="Search snippets"
         class="mx-4 mt-3 px-5 py-3 rounded-full bg-theme-surface text-theme-on-surface" />
 
-    <native:scroll-view axis="horizontal" shows-indicators="false" class="w-full gap-2 px-4">
-        @foreach ($languages as $option)
-            <native:chip
-                label="{{ $option->label() }}"
-                :selected="$language === $option->value"
-                @change="toggleLanguage('{{ $option->value }}')" />
-        @endforeach
-    </native:scroll-view>
+    {{--
+        Absent, not empty, when there is nothing to choose between: an empty
+        scroll view still takes a slot in this column's `gap-3` and pushes the
+        list down for no reason. The screen decides when that is — see
+        SnippetListScreen::languageFilters().
+    --}}
+    @if ($languages !== [])
+        <native:scroll-view axis="horizontal" shows-indicators="false" class="w-full gap-1 px-2">
+            @foreach ($languages as $option)
+                <native:row class="w-full gap-1 px-2">
+                    <native:chip
+                        label="{{ $option->label() }}"
+                        :selected="$language === $option->value"
+                        @change="toggleLanguage('{{ $option->value }}')" />
+                </native:row>
+            @endforeach
+        </native:scroll-view>
+    @endif
 
     @if ($snippets->isEmpty())
         <native:column class="flex-1 w-full items-center justify-center gap-2 px-8">
