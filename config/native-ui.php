@@ -150,8 +150,18 @@ return [
     |
     */
 
+    /*
+    | `mono` is bundled rather than borrowed from the platform because the
+    | editor needs it: `<native:text>`'s `font-mono` class does not reach the
+    | text inputs, so the edit screen has to name a font file explicitly.
+    | Reading uses the same face, so code looks identical either side of a
+    | save. Downloaded with `php artisan native:font "JetBrains Mono"`.
+    */
+
     'fonts' => [
         'default' => 'System',
+        'mono' => 'JetBrainsMono-Regular',
+        'mono-bold' => 'JetBrainsMono-Bold',
     ],
 
 ];
