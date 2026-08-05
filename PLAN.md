@@ -1652,12 +1652,12 @@ Screens are testable off-device — the docs document `->search('query')`, `->se
 - Empty states are distinct: "No snippets yet" (nothing saved) vs "No matches" (filters active) — with a way to clear filters in the second.
 - Use `<native:list>`. Switch to `<native:virtual-list>` only if the list visibly stutters; it is limited to one per screen and adds a windowing trait.
 
-- [ ] **Step 1: Write the failing feature test** covering: empty state, rows appear newest-first, search narrows results, language chip narrows results, search plus chip combine, clearing search restores all.
-- [ ] **Step 2: Run it and confirm it fails**
-- [ ] **Step 3: Implement the screen class and Blade view**
-- [ ] **Step 4: Run the test to green**
+- [x] **Step 1: Write the failing feature test** covering: empty state, rows appear newest-first, search narrows results, language chip narrows results, search plus chip combine, clearing search restores all.
+- [x] **Step 2: Run it and confirm it fails**
+- [x] **Step 3: Implement the screen class and Blade view**
+- [x] **Step 4: Run the test to green**
 - [ ] **Step 5: Check on a device** — the list is the app's front door
-- [ ] **Step 6: `vendor/bin/pint --dirty` and commit**
+- [x] **Step 6: `vendor/bin/pint --dirty` and commit**
 
 ---
 
@@ -1680,12 +1680,12 @@ Screens are testable off-device — the docs document `->search('query')`, `->se
 - Secondary: **Share** via `Share::file($snippet->displayTitle(), $snippet->body, '')` — the documented text-only form.
 - Also: Edit, Delete (with confirm), and a language chip that opens the picker and triggers `SnippetRenderer::refresh()`.
 
-- [ ] **Step 1: Write the failing test** covering: highlighted runs render, missing render falls back to plain body, stale hash falls back to plain body, truncation at 300 lines, copy writes the raw body (use the plugin's `assertCopied()` helper), changing language refreshes renders.
-- [ ] **Step 2: Run it and confirm it fails**
-- [ ] **Step 3: Implement the partial, then the screen**
-- [ ] **Step 4: Run the test to green**
+- [x] **Step 1: Write the failing test** covering: highlighted runs render, missing render falls back to plain body, stale hash falls back to plain body, truncation at 300 lines, copy writes the raw body (use the plugin's `assertCopied()` helper), changing language refreshes renders.
+- [x] **Step 2: Run it and confirm it fails**
+- [x] **Step 3: Implement the partial, then the screen**
+- [x] **Step 4: Run the test to green**
 - [ ] **Step 5: Check on a device** with a long, wide snippet
-- [ ] **Step 6: `vendor/bin/pint --dirty` and commit**
+- [x] **Step 6: `vendor/bin/pint --dirty` and commit**
 
 ---
 
@@ -1706,12 +1706,12 @@ Screens are testable off-device — the docs document `->search('query')`, `->se
 - **Save order matters:** persist body/title/language first, return to the read screen, *then* refresh renders. The user must never wait on highlighting. If Task 0.1 measured over 300 ms, dispatch the refresh rather than running it inline.
 - Validation errors surface inline; the 100 KB cap shows "Snippets are limited to 100 KB."
 
-- [ ] **Step 1: Write the failing test** covering: saving persists changes, saving refreshes both renders, changing only the title does *not* invalidate renders, an over-cap body is rejected, the language picker defaults to last-used.
-- [ ] **Step 2: Run it and confirm it fails**
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run the test to green**
+- [x] **Step 1: Write the failing test** covering: saving persists changes, saving refreshes both renders, changing only the title does *not* invalidate renders, an over-cap body is rejected, the language picker defaults to last-used.
+- [x] **Step 2: Run it and confirm it fails**
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run the test to green**
 - [ ] **Step 5: Check on a device** — specifically whether the keyboard applies autocorrect or auto-capitalisation to code. The `keyboard` prop offers no "no autocorrect" option; if it mangles input, try `keyboard="url"` (usually the least interfering) and record the result here.
-- [ ] **Step 6: `vendor/bin/pint --dirty` and commit**
+- [x] **Step 6: `vendor/bin/pint --dirty` and commit**
 
 ---
 
@@ -1732,12 +1732,12 @@ FAB on the list → new snippet screen with the body **pre-filled from `Clipboar
 - **Apply Task 0.2's finding.** If iOS prompts for paste consent on every read, do *not* auto-fill — render an explicit "Paste from clipboard" button so the prompt follows a deliberate tap. Record which behaviour you shipped.
 - Nothing on this path may block: no spinner, no highlight, no network.
 
-- [ ] **Step 1: Write the failing test** using `withClipboard('...')` to cover: clipboard content pre-fills the body, empty clipboard yields an empty editor, the last-used language is preselected.
-- [ ] **Step 2: Run it and confirm it fails**
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run the test to green**
+- [x] **Step 1: Write the failing test** using `withClipboard('...')` to cover: clipboard content pre-fills the body, empty clipboard yields an empty editor, the last-used language is preselected.
+- [x] **Step 2: Run it and confirm it fails**
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run the test to green**
 - [ ] **Step 5: Time the real flow on a device** — copy in a browser, switch apps, save. If it exceeds about five seconds, something on this path is doing work it shouldn't.
-- [ ] **Step 6: `vendor/bin/pint --dirty` and commit**
+- [x] **Step 6: `vendor/bin/pint --dirty` and commit**
 
 ---
 
@@ -1758,12 +1758,12 @@ FAB on the list → new snippet screen with the body **pre-filled from `Clipboar
 - Theme toggle: light / dark / follow system. Both renders already exist for every snippet, so switching is a read, not a recompute.
 - **If Task 0.3 found the database is excluded from OS backup**, put a prominent notice here — export is then the only backup that exists.
 
-- [ ] **Step 1: Write the failing test** covering: export produces valid JSON for all snippets, import adds without deleting, malformed input shows a readable error, imported snippets get renders.
-- [ ] **Step 2: Run it and confirm it fails**
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run the test to green**
+- [x] **Step 1: Write the failing test** covering: export produces valid JSON for all snippets, import adds without deleting, malformed input shows a readable error, imported snippets get renders.
+- [x] **Step 2: Run it and confirm it fails**
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run the test to green**
 - [ ] **Step 5: Full round-trip on a device** — export, share to Files, uninstall, reinstall, paste back, confirm every snippet returns with correct highlighting
-- [ ] **Step 6: `vendor/bin/pint --dirty` and commit**
+- [x] **Step 6: `vendor/bin/pint --dirty` and commit**
 
 ---
 
