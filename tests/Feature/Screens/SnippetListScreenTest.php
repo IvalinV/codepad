@@ -57,6 +57,97 @@ it('narrows the list as the user searches', function () {
         ->assertDontSee('Cache warmer');
 });
 
+/** The label on every language filter chip, in the order they are rendered. */
+function chipLabels(array $tree): array
+{
+    $labels = [];
+
+    $walk = function (array $node) use (&$walk, &$labels): void {
+        if (($node['type'] ?? null) === 'chip') {
+            $labels[] = $node['props']['label'] ?? '';
+        }
+
+        foreach ($node['children'] ?? [] as $child) {
+            $walk($child);
+        }
+    };
+
+    $walk($tree);
+
+    return $labels;
+}
+
+/** Every element type present anywhere in the rendered tree. */
+function nodeTypes(array $tree): array
+{
+    $types = [];
+
+    $walk = function (array $node) use (&$walk, &$types): void {
+        $types[] = $node['type'] ?? '';
+
+        foreach ($node['children'] ?? [] as $child) {
+            $walk($child);
+        }
+    };
+
+    $walk($tree);
+
+    return $types;
+}
+
+it('offers only the languages the library actually holds', function () {
+    Snippet::factory()->create(['language' => Language::Php]);
+    Snippet::factory()->create(['language' => Language::Go]);
+
+    $labels = chipLabels(Native::test(SnippetListScreen::class)->tree());
+
+    /*
+     * Enum order, not storage order: `Language::cases()` puts PHP before Go.
+     * Ordering by insertion or by frequency would move a chip out from under
+     * the thumb that reaches for it every day, so the order is asserted here
+     * rather than just the membership.
+     */
+    expect($labels)->toBe(['PHP', 'Go']);
+});
+
+it('hides the filter row when the library holds only one language', function () {
+    Snippet::factory()->count(3)->create(['language' => Language::Php]);
+
+    $tree = Native::test(SnippetListScreen::class)->tree();
+
+    /*
+     * A lone chip is not a filter — narrowing an all-PHP library to PHP
+     * changes nothing — so the row earns its vertical space only once there
+     * is a choice to make.
+     *
+     * The scroll view has to be gone, not merely emptied: an empty one still
+     * occupies a slot in the parent column's `gap-3`, which is the very
+     * vertical space hiding the row is meant to reclaim. Asserting on the
+     * chips alone would pass on a row that still pushes the list down.
+     */
+    expect(chipLabels($tree))->toBe([])
+        ->and(nodeTypes($tree))->not->toContain('scroll_view');
+});
+
+it('keeps the filter row stable while a search narrows the list', function () {
+    Snippet::factory()->create(['title' => 'Retry helper', 'language' => Language::Php]);
+    Snippet::factory()->create(['title' => 'Cache warmer', 'language' => Language::Go]);
+
+    /*
+     * The chips describe the library, not the current result set. Deriving
+     * them from the filtered query would reflow the row on every keystroke
+     * and could drop the active chip mid-typing.
+     */
+    $labels = chipLabels(
+        Native::test(SnippetListScreen::class)
+            ->input('search', 'retry')
+            ->assertDontSee('Cache warmer')
+            ->tree()
+    );
+
+    expect($labels)->toBe(['PHP', 'Go']);
+});
+
 it('narrows the list when a language chip is tapped', function () {
     Snippet::factory()->create(['title' => 'A php one', 'language' => Language::Php]);
     Snippet::factory()->create(['title' => 'A go one', 'language' => Language::Go]);
