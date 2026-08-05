@@ -29,31 +29,12 @@ pest()->extend(TestCase::class)->in('Unit/Highlighting');
 
 /*
 |--------------------------------------------------------------------------
-| Expectations
-|--------------------------------------------------------------------------
-|
-| When you're writing tests, you often need to check that values meet certain conditions. The
-| "expect()" function gives you access to a set of "expectations" methods that you can use
-| to assert different things. Of course, you may extend the Expectation API at any time.
-|
-*/
-
-expect()->extend('toBeOne', function () {
-    return $this->toBe(1);
-});
-
-/*
-|--------------------------------------------------------------------------
 | Functions
 |--------------------------------------------------------------------------
 |
-| While Pest is very powerful out-of-the-box, you may have some testing code specific to your
-| project that you don't want to repeat in every file. Here you can also expose helpers as
-| global functions to help you to reduce the number of lines of code in your test files.
+| Helpers shared across test files belong here. Note that helpers defined
+| inside a test file land in the GLOBAL namespace: two files choosing the
+| same name is a fatal error, not a failing test. Anything reused, or named
+| generically enough to collide, should move here instead.
 |
 */
-
-function something()
-{
-    // ..
-}
