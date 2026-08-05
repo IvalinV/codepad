@@ -1,5 +1,6 @@
 <?php
 
+use App\Native\SettingsScreen;
 use App\Native\SnippetEditScreen;
 use App\Native\SnippetListScreen;
 use App\Native\SnippetShowScreen;
@@ -16,3 +17,4 @@ Route::native('/', SnippetListScreen::class);
 Route::native('/snippets/new', SnippetEditScreen::class);
 Route::native('/snippets/{snippet}', SnippetShowScreen::class);
 Route::native('/snippets/{snippet}/edit', SnippetEditScreen::class);
+Route::native('/settings', SettingsScreen::class);
