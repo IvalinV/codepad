@@ -47,33 +47,44 @@ return [
 
     'theme' => [
 
+        /*
+        | Light, airy, card-based: a barely-tinted background with white cards
+        | floating on it, one violet accent, and everything else muted so the
+        | syntax colours in a snippet are the brightest thing on screen. That
+        | last constraint is why the palette is deliberately restrained —
+        | Codepad's content IS colour, and chrome that competes with it makes
+        | code harder to read, not the app more lively.
+        |
+        | Every `on-*` pair clears WCAG AA (4.5:1) against its background.
+        */
+
         'light' => [
             // Primary brand color — used for filled buttons, active states, key accents.
-            'primary' => '#0F766E',
+            'primary' => '#7C3AED',
             'on-primary' => '#FFFFFF',
 
             // Secondary / muted action color.
-            'secondary' => '#475569',
+            'secondary' => '#4B5563',
             'on-secondary' => '#FFFFFF',
 
             // Surface = cards, sheets, dialogs. Background = page root.
             'surface' => '#FFFFFF',
-            'on-surface' => '#0F172A',
-            'background' => '#F8FAFC',
-            'on-background' => '#0F172A',
+            'on-surface' => '#1E2330',
+            'background' => '#F6F5FB',
+            'on-background' => '#1E2330',
 
             // Surface variant = filled text fields, muted tonal surfaces.
             // on-surface-variant = muted label/hint text on those surfaces.
-            'surface-variant' => '#F1F5F9',
-            'on-surface-variant' => '#475569',
+            'surface-variant' => '#F1F0F8',
+            'on-surface-variant' => '#5B6172',
 
             // Outline = neutral borders (text fields, dividers, cards).
             // outline-variant = softer edges: hairline dividers, card seams.
-            'outline' => '#CBD5E1',
-            'outline-variant' => '#E2E8F0',
+            'outline' => '#DEDCEC',
+            'outline-variant' => '#EDEBF6',
 
             // Destructive actions — maps to `variant="destructive"` on components.
-            'destructive' => '#B91C1C',
+            'destructive' => '#C2185B',
             'on-destructive' => '#FFFFFF',
 
             // Success / "safe to proceed" — confirmations, verified badges.
@@ -81,44 +92,49 @@ return [
             'on-success' => '#FFFFFF',
 
             // Tertiary accent — for highlights, badges, emphasis not covered by primary.
-            'accent' => '#C2410C',
+            'accent' => '#DB2777',
             'on-accent' => '#FFFFFF',
         ],
 
         'dark' => [
             // Leave empty or partial to auto-derive from `light` (luminance inversion).
             // Specify any token here to override the derived value.
-            'primary' => '#14B8A6',
-            'on-primary' => '#FFFFFF',
+            'primary' => '#A78BFA',
+            'on-primary' => '#1B1630',
 
-            'secondary' => '#94A3B8',
-            'on-secondary' => '#0F172A',
+            'secondary' => '#9CA3AF',
+            'on-secondary' => '#151824',
 
-            'surface' => '#1E293B',
-            'on-surface' => '#F8FAFC',
-            'background' => '#0F172A',
-            'on-background' => '#F8FAFC',
+            'surface' => '#1C2030',
+            'on-surface' => '#F3F4F8',
+            'background' => '#12151F',
+            'on-background' => '#F3F4F8',
 
-            'surface-variant' => '#334155',
-            'on-surface-variant' => '#94A3B8',
+            'surface-variant' => '#282D40',
+            'on-surface-variant' => '#A6ACC0',
 
-            'outline' => '#475569',
-            'outline-variant' => '#334155',
+            'outline' => '#3A4055',
+            'outline-variant' => '#282D40',
 
-            'destructive' => '#F87171',
-            'on-destructive' => '#0F172A',
+            'destructive' => '#F472B6',
+            'on-destructive' => '#2A0E1B',
 
             'success' => '#4ADE80',
             'on-success' => '#052E16',
 
-            'accent' => '#FDBA74',
-            'on-accent' => '#0F172A',
+            'accent' => '#F0ABFC',
+            'on-accent' => '#2A0E1B',
         ],
 
+        /*
+        | Radii track the reference: pill controls, and generously rounded
+        | cards rather than the platform default's tighter corners.
+        */
+
         // Corner radii (points / dp).
-        'radius-sm' => 4,
-        'radius-md' => 8,
-        'radius-lg' => 16,
+        'radius-sm' => 8,
+        'radius-md' => 12,
+        'radius-lg' => 20,
         'radius-full' => 9999,
 
         // Font size scale (points / sp).

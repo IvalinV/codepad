@@ -44,9 +44,17 @@ class SnippetEditScreen extends NativeComponent
 
     protected ?Snippet $snippet = null;
 
+    /**
+     * Whether this screen opened as a capture rather than an edit. Read
+     * after saving, when `$this->snippet` has been filled in and can no
+     * longer answer the question.
+     */
+    protected bool $openedAsCapture = true;
+
     public function mount(): void
     {
         $this->snippet = Snippet::query()->find((int) $this->param('snippet'));
+        $this->openedAsCapture = $this->snippet === null;
 
         if ($this->snippet !== null) {
             $this->title = (string) $this->snippet->title;
@@ -139,11 +147,29 @@ class SnippetEditScreen extends NativeComponent
             app(SnippetRenderer::class)->refresh($this->snippet);
         }
 
-        $this->back();
+        $this->leave();
     }
 
     public function cancel(): void
     {
+        $this->leave();
+    }
+
+    /**
+     * Capture is a TAB, so this screen can be the root of its stack — and
+     * `back()` at the root pops the last frame and exits the app. Leaving a
+     * capture therefore replaces onto the library, which both survives that
+     * case and lands the user where their new snippet actually is. Editing
+     * is always a push from the read screen, so there a pop is correct.
+     */
+    private function leave(): void
+    {
+        if ($this->openedAsCapture) {
+            $this->replace('/');
+
+            return;
+        }
+
         $this->back();
     }
 

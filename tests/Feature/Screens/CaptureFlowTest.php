@@ -60,7 +60,7 @@ it('captures and saves in one pass', function () {
     Native::test(SnippetEditScreen::class)
         ->select('changeLanguage', 'Go')
         ->press('save')
-        ->assertWentBack();
+        ->assertReplacedWith('/');
 
     $snippet = Snippet::query()->sole();
 

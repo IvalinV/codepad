@@ -64,7 +64,7 @@ it('creates a new snippet and renders it', function () {
         ->set('title', 'Fresh')
         ->select('changeLanguage', 'PHP')
         ->press('save')
-        ->assertWentBack();
+        ->assertReplacedWith('/');
 
     $snippet = Snippet::query()->sole();
 
@@ -112,7 +112,7 @@ it('accepts a body at exactly the cap', function () {
     Native::test(SnippetEditScreen::class)
         ->set('body', str_repeat('a', 102400))
         ->press('save')
-        ->assertWentBack();
+        ->assertReplacedWith('/');
 
     expect(Snippet::query()->count())->toBe(1);
 });
@@ -134,7 +134,7 @@ it('clears a validation error once the problem is fixed', function () {
         ->assertSee('A snippet needs some code.')
         ->set('body', 'now it has some')
         ->press('save')
-        ->assertWentBack();
+        ->assertReplacedWith('/');
 
     expect(Snippet::query()->count())->toBe(1);
 });

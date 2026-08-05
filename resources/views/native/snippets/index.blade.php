@@ -1,12 +1,11 @@
-<native:top-bar title="Codepad" display-mode="large">
-    <native:top-bar-action id="settings" label="Settings" icon="settings" @tap="openSettings" />
-</native:top-bar>
+{{-- Settings is a tab in TabsLayout, so it is deliberately not an action here. --}}
+<native:top-bar title="Codepad" display-mode="large" />
 
 <native:column class="w-full h-full gap-3 bg-theme-background">
     <native:bare-text-input
         native:model.debounce.300ms="search"
         placeholder="Search snippets"
-        class="mx-4 mt-3 px-4 py-2 rounded-full bg-theme-surface-variant text-theme-on-surface" />
+        class="mx-4 mt-3 px-5 py-3 rounded-full bg-theme-surface text-theme-on-surface" />
 
     <native:scroll-view axis="horizontal" shows-indicators="false" class="w-full gap-2 px-4">
         @foreach ($languages as $option)
@@ -21,7 +20,7 @@
         <native:column class="flex-1 w-full items-center justify-center gap-2 px-8">
             @if ($libraryIsEmpty)
                 <native:text class="text-lg font-semibold text-theme-on-background">No snippets yet</native:text>
-                <native:text class="text-center text-theme-on-surface-variant">Copy some code, then tap the button below to capture it.</native:text>
+                <native:text class="text-center text-theme-on-surface-variant">Copy some code, then tap Capture to keep it.</native:text>
             @else
                 <native:text class="text-lg font-semibold text-theme-on-background">No matches</native:text>
                 <native:text class="text-center text-theme-on-surface-variant">Nothing in your library matches the current filters.</native:text>
@@ -29,14 +28,20 @@
             @endif
         </native:column>
     @else
-        <native:list separator class="flex-1 w-full">
+        {{--
+            Rows are cards on the background rather than separated list rows:
+            a snippet is an object you pick up, and the card edge is what makes
+            the code preview inside it read as content rather than as more chrome.
+        --}}
+        <native:list plain class="flex-1 w-full">
             @foreach ($snippets as $snippet)
-                <native:pressable class="w-full px-4 py-3" @tap="open({{ $snippet->id }})">
-                    <native:column class="w-full gap-1">
+                <native:pressable class="w-full px-4 py-1" @tap="open({{ $snippet->id }})">
+                    <native:column class="w-full gap-1 px-4 py-3 rounded-2xl bg-theme-surface">
                         <native:text class="font-semibold text-theme-on-surface" max-lines="1">{{ $snippet->displayTitle() }}</native:text>
-                        <native:text class="text-sm font-mono text-theme-on-surface-variant" max-lines="2">{{ $this->preview($snippet) }}</native:text>
-                        <native:row class="w-full gap-2">
-                            <native:text class="text-xs text-theme-on-surface-variant">{{ $snippet->language->label() }}</native:text>
+                        <native:text class="text-sm text-theme-on-surface-variant" font="mono" max-lines="2">{{ $this->preview($snippet) }}</native:text>
+                        <native:row class="w-full items-center gap-2 pt-1">
+                            <native:text class="text-xs px-2 py-1 rounded-full bg-theme-primary/15 text-theme-primary">{{ $snippet->language->label() }}</native:text>
+                            <native:spacer />
                             <native:text class="text-xs text-theme-on-surface-variant">{{ $snippet->updated_at?->diffForHumans() }}</native:text>
                         </native:row>
                     </native:column>

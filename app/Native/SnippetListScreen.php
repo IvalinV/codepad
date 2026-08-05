@@ -75,11 +75,6 @@ class SnippetListScreen extends NativeComponent
         $this->navigate('/snippets/new');
     }
 
-    public function openSettings(): void
-    {
-        $this->navigate('/settings');
-    }
-
     /** The first few non-empty lines of a body, for the row preview. */
     public function preview(Snippet $snippet): string
     {
