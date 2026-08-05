@@ -27,6 +27,63 @@ function renderedColours(array $tree): array
     return $colours;
 }
 
+/** Every node of the given type, anywhere in the rendered tree, in document order. */
+function nodesOfType(array $tree, string $type): array
+{
+    $found = [];
+
+    $walk = function (array $node) use (&$walk, &$found, $type): void {
+        if (($node['type'] ?? null) === $type) {
+            $found[] = $node;
+        }
+
+        foreach ($node['children'] ?? [] as $child) {
+            $walk($child);
+        }
+    };
+
+    $walk($tree);
+
+    return $found;
+}
+
+/**
+ * The code block is the one `text` element the scroll view holds directly.
+ * Asserting on the scroll view's *direct* children is the point: the bug this
+ * guards against turned every run into a sibling here rather than a run of the
+ * block, which is invisible to `assertSee` but stacks one token per line.
+ */
+function codeBlock(array $tree): array
+{
+    $scrollView = nodesOfType($tree, 'scroll_view')[0] ?? [];
+
+    return array_values(array_filter(
+        $scrollView['children'] ?? [],
+        fn (array $child): bool => ($child['type'] ?? null) === 'text',
+    ));
+}
+
+it('composes the highlighted runs into one text block rather than stacking them', function () {
+    $body = "<?php\n\nclass Indented\n{\n    // a comment\n}";
+
+    $snippet = Snippet::factory()->create(['body' => $body, 'language' => Language::Php]);
+    app(SnippetRenderer::class)->refresh($snippet);
+
+    $blocks = codeBlock(Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree());
+
+    expect($blocks)->toHaveCount(1);
+
+    $runs = $blocks[0]['children'] ?? [];
+
+    /*
+     * Concatenating the runs has to reproduce the body exactly. It is one
+     * assertion covering everything the stacking bug destroyed at once:
+     * ordering, the leading indentation Phiki emits as its own whitespace
+     * token, and the newlines that separate the lines.
+     */
+    expect(implode('', array_map(fn (array $run): string => $run['props']['text'] ?? '', $runs)))->toBe($body);
+});
+
 it('renders the cached highlighted runs', function () {
     $snippet = Snippet::factory()->create(['body' => "<?php\necho 'hi';", 'language' => Language::Php]);
     app(SnippetRenderer::class)->refresh($snippet);
