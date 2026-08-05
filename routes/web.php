@@ -1,6 +1,7 @@
 <?php
 
 use App\Native\SnippetListScreen;
+use App\Native\SnippetShowScreen;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -11,3 +12,4 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::native('/', SnippetListScreen::class);
+Route::native('/snippets/{snippet}', SnippetShowScreen::class);

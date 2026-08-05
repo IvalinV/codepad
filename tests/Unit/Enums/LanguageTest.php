@@ -84,3 +84,18 @@ it('resolves from a stored string value', function () {
     expect(Language::tryFrom('php'))->toBe(Language::Php)
         ->and(Language::tryFrom('nonsense'))->toBeNull();
 });
+
+it('resolves back from a human label', function (Language $language, string $label) {
+    expect(Language::tryFromLabel($label))->toBe($language);
+})->with(expectedLanguageLabels());
+
+it('does not resolve an unknown label', function () {
+    expect(Language::tryFromLabel('COBOL'))->toBeNull()
+        ->and(Language::tryFromLabel('php'))->toBeNull();
+});
+
+it('keeps every label unique, which is what makes the reverse lookup unambiguous', function () {
+    $labels = array_map(fn (Language $case): string => $case->label(), Language::cases());
+
+    expect(array_unique($labels))->toHaveCount(count($labels));
+});

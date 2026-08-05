@@ -45,6 +45,25 @@ enum Language: string
         };
     }
 
+    /**
+     * The reverse of `label()`, for the pickers.
+     *
+     * `<native:select>` takes a flat list of strings and hands back the one
+     * the user chose, so the label is what comes off the wire. Labels are
+     * unique across the enum — `LanguageTest` pins that — which is what makes
+     * this lookup unambiguous.
+     */
+    public static function tryFromLabel(string $label): ?self
+    {
+        foreach (self::cases() as $case) {
+            if ($case->label() === $label) {
+                return $case;
+            }
+        }
+
+        return null;
+    }
+
     public function label(): string
     {
         return match ($this) {
