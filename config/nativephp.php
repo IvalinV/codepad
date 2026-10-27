@@ -380,6 +380,7 @@ return [
     ],
 
     'android' => [
+        'min_sdk' => env('NATIVEPHP_ANDROID_MIN_SDK', 29),
         'gradle_jdk_path' => env('NATIVEPHP_GRADLE_PATH'),
         'android_sdk_path' => env('NATIVEPHP_ANDROID_SDK_LOCATION'),
         'emulator_path' => env('ANDROID_EMULATOR'),
