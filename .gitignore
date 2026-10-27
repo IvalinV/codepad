@@ -26,3 +26,6 @@ Thumbs.db
 # Vibe service (deployed separately from R2)
 vibe-service/
 public/vibe/
+
+# Credential files (keystores, private keys, etc.)
+/credentials/
