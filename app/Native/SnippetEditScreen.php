@@ -28,6 +28,9 @@ class SnippetEditScreen extends NativeComponent
     /** Rows the editor opens at, so a short snippet still looks like a canvas. */
     private const MIN_LINES = 12;
 
+    /** Keep long snippets scrollable without violating Compose's line bounds. */
+    private const MAX_LINES = 1000;
+
     public string $body = '';
 
     public string $title = '';
@@ -84,6 +87,7 @@ class SnippetEditScreen extends NativeComponent
         return view('native.snippets.edit', [
             'isNew' => $this->snippet === null,
             'minLines' => self::MIN_LINES,
+            'maxLines' => self::MAX_LINES,
             'titlePlaceholder' => $this->derivedTitle(),
             'languages' => array_map(fn (Language $case): string => $case->label(), Language::cases()),
         ]);

@@ -283,7 +283,7 @@ it('reads in the dark render when the system is dark', function () {
         Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree()
     );
 
-    expect($colours)->toContain('#e1e4e8');
+    expect($colours)->toContain('#f3f4f8');
 });
 
 it('shows a readable message when the snippet no longer exists', function () {

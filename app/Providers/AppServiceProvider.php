@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Enums\ThemeVariant;
+use App\Support\Highlighting\CodePalette;
 use Illuminate\Support\ServiceProvider;
 use Phiki\Phiki;
+use Phiki\Theme\Theme;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,6 +30,12 @@ class AppServiceProvider extends ServiceProvider
 
             foreach (self::PATCHED_GRAMMARS as $name) {
                 $phiki->environment()->grammars->register($name, resource_path("grammars/{$name}.json"));
+            }
+
+            $palette = new CodePalette;
+
+            foreach (ThemeVariant::cases() as $variant) {
+                $phiki->theme($variant->syntaxTheme(), Theme::parse($palette->definition($variant)));
             }
 
             return $phiki;

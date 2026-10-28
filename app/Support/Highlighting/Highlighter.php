@@ -12,7 +12,7 @@ use Throwable;
  * The only class in the application that *calls* Phiki: `highlight()` accepts
  * and returns application types only, and Phiki appears solely in the
  * constructor's dependencies. Phiki types also surface on
- * `Language::grammar()` and `ThemeVariant::phikiTheme()` — those two enum
+ * `Language::grammar()` and `ThemeVariant::syntaxTheme()` — those two enum
  * methods, alongside this class, are the full replacement surface if Phiki
  * is ever swapped out.
  */
@@ -34,7 +34,7 @@ final readonly class Highlighter
      */
     public function highlight(string $code, Language $language, ThemeVariant $theme): HighlightedCode
     {
-        $phikiTheme = $theme->phikiTheme();
+        $phikiTheme = $theme->syntaxTheme();
 
         try {
             $highlightedTokens = $this->phiki->codeToHighlightedTokens($code, $language->grammar(), $phikiTheme);
@@ -53,14 +53,13 @@ final readonly class Highlighter
     }
 
     /**
-     * The active theme's base foreground, or null when the theme cannot be
-     * resolved — a missing theme file is one of the failures `highlight()`
-     * recovers from, so this must not be able to throw on the fallback path.
+     * The selected Codepad palette's base foreground, used for unmatched
+     * tokens and the plain-text fallback path.
      */
     private function themeForeground(ThemeVariant $theme): ?string
     {
         try {
-            $foreground = $this->phiki->environment()->themes->resolve($theme->phikiTheme())->base()->foreground;
+            $foreground = $this->phiki->environment()->themes->resolve($theme->syntaxTheme())->base()->foreground;
         } catch (Throwable) {
             return null;
         }
