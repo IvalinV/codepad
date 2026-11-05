@@ -33,6 +33,14 @@ it('opens an empty editor when the clipboard holds nothing at all', function () 
     Native::test(SnippetEditScreen::class)->assertSet('body', '');
 });
 
+it('gives the multiline editor a maximum larger than its minimum', function () {
+    $tree = Native::test(SnippetEditScreen::class)->tree();
+    $rendered = json_encode($tree);
+
+    expect($rendered)->toContain('"min_lines":12')
+        ->and($rendered)->toContain('"max_lines":1000');
+});
+
 it('preselects the last-used language on a captured snippet', function () {
     app(Preferences::class)->rememberLanguage(Language::Sql);
     Native::fakeBridge()->withClipboard('SELECT 1;');

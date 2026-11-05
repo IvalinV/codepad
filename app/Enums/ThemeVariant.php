@@ -16,4 +16,9 @@ enum ThemeVariant: string
             self::Dark => Theme::GithubDark,
         };
     }
+
+    public function syntaxTheme(): string
+    {
+        return "codepad-{$this->value}";
+    }
 }

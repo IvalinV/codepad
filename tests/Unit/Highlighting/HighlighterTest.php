@@ -25,6 +25,23 @@ it('produces different colours for the two themes', function () {
     expect($light)->not->toBe($dark);
 });
 
+it('uses Codepad appearance colors for syntax tokens', function () {
+    $highlighter = app(Highlighter::class);
+    $code = "<?php\necho 'hi';\n// note";
+
+    $light = collect($highlighter->highlight($code, Language::Php, ThemeVariant::Light)->toArray())
+        ->flatten(1);
+    $dark = collect($highlighter->highlight($code, Language::Php, ThemeVariant::Dark)->toArray())
+        ->flatten(1);
+
+    expect($light->firstWhere('text', 'echo')['color'])->toBe('#7C3AED')
+        ->and($light->firstWhere('text', 'hi')['color'])->toBe('#15803D')
+        ->and($light->firstWhere('text', '//')['color'])->toBe('#5B6172')
+        ->and($dark->firstWhere('text', 'echo')['color'])->toBe('#A78BFA')
+        ->and($dark->firstWhere('text', 'hi')['color'])->toBe('#4ADE80')
+        ->and($dark->firstWhere('text', '//')['color'])->toBe('#A6ACC0');
+});
+
 it('gives unmatched tokens the dark theme base foreground, not black', function () {
     $runs = collect(app(Highlighter::class)->highlight("<?php\necho 'hi';", Language::Php, ThemeVariant::Dark)->toArray())
         ->flatten(1);
@@ -32,7 +49,7 @@ it('gives unmatched tokens the dark theme base foreground, not black', function 
     $semicolon = $runs->firstWhere('text', ';');
 
     expect($semicolon)->not->toBeNull()
-        ->and($semicolon['color'])->toBe('#e1e4e8')
+        ->and($semicolon['color'])->toBe('#F3F4F8')
         ->and($semicolon['color'])->not->toBe('#000000');
 });
 
@@ -40,7 +57,7 @@ it('gives unmatched tokens the light theme base foreground', function () {
     $runs = collect(app(Highlighter::class)->highlight("<?php\necho 'hi';", Language::Php, ThemeVariant::Light)->toArray())
         ->flatten(1);
 
-    expect($runs->firstWhere('text', ';')['color'])->toBe('#24292e');
+    expect($runs->firstWhere('text', ';')['color'])->toBe('#1E2330');
 });
 
 it('handles an empty body without erroring', function () {
@@ -107,7 +124,7 @@ it('carries the theme base foreground into the fallback when only the grammar is
         ->flatten(1)
         ->pluck('color');
 
-    expect($colors->all())->toBe(['#e1e4e8']);
+    expect($colors->all())->toBe(['#F3F4F8']);
 });
 
 it('falls back to plain text for a body that is not valid UTF-8', function () {

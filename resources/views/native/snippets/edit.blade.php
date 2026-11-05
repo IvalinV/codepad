@@ -27,6 +27,7 @@
             native:model.blur="body"
             multiline
             :min-lines="$minLines"
+            :max-lines="$maxLines"
             keyboard="url"
             font="mono"
             placeholder="Paste or type your code"

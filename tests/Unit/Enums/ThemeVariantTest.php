@@ -13,3 +13,10 @@ it('maps each variant to the expected phiki theme', function (ThemeVariant $vari
     'Light' => [ThemeVariant::Light, Theme::GithubLight],
     'Dark' => [ThemeVariant::Dark, Theme::GithubDark],
 ]);
+
+it('maps each variant to a Codepad syntax palette', function (ThemeVariant $variant, string $expected) {
+    expect($variant->syntaxTheme())->toBe($expected);
+})->with([
+    'Light' => [ThemeVariant::Light, 'codepad-light'],
+    'Dark' => [ThemeVariant::Dark, 'codepad-dark'],
+]);
