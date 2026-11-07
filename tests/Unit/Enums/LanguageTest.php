@@ -21,6 +21,7 @@ function expectedLanguageGrammars(): array
 {
     return [
         'PlainText' => [Language::PlainText, Grammar::Txt],
+        'Markdown' => [Language::Markdown, Grammar::Markdown],
         'Php' => [Language::Php, Grammar::Php],
         'JavaScript' => [Language::JavaScript, Grammar::Javascript],
         'TypeScript' => [Language::TypeScript, Grammar::Typescript],
@@ -47,6 +48,7 @@ function expectedLanguageLabels(): array
 {
     return [
         'PlainText' => [Language::PlainText, 'Plain text'],
+        'Markdown' => [Language::Markdown, 'Markdown'],
         'Php' => [Language::Php, 'PHP'],
         'JavaScript' => [Language::JavaScript, 'JavaScript'],
         'TypeScript' => [Language::TypeScript, 'TypeScript'],

@@ -14,7 +14,63 @@
     </native:row>
 
     <native:scroll-view class="flex-1 w-full px-4">
-        @include('native.partials.highlighted-code', ['highlighted' => $highlighted, 'body' => $body])
+        @if ($markdown !== null)
+            <native:column class="w-full gap-3">
+                @foreach ($markdown as $block)
+                    @if ($block['type'] === 'heading')
+                        <native:text
+                            :text="$block['text']"
+                            class="w-full {{ match ($block['level']) {
+                                1 => 'text-3xl font-bold text-theme-on-background',
+                                2 => 'text-2xl font-bold text-theme-on-background',
+                                3 => 'text-xl font-bold text-theme-on-background',
+                                4 => 'text-lg font-bold text-theme-on-background',
+                                5 => 'text-base font-bold text-theme-on-background',
+                                default => 'text-sm font-bold text-theme-on-background',
+                            } }}" />
+                    @elseif ($block['type'] === 'list')
+                        <native:column class="w-full gap-1 pl-4">
+                            @foreach ($block['items'] as $item)
+                                <native:row class="w-full items-start gap-2">
+                                    <native:text
+                                        :text="$block['ordered'] ? $loop->iteration.'.' : '•'"
+                                        class="text-base font-semibold text-theme-primary" />
+                                    <native:text :text="$item['text']" class="flex-1 text-base text-theme-on-surface" />
+                                </native:row>
+                            @endforeach
+                        </native:column>
+                    @elseif ($block['type'] === 'table')
+                        <native:column class="w-full rounded-xl bg-theme-surface overflow-hidden">
+                            <native:row class="w-full bg-theme-surface-variant">
+                                @foreach ($block['headers'] as $cell)
+                                    <native:text
+                                        :text="$cell['text']"
+                                        class="flex-1 px-3 py-2 text-sm font-bold text-theme-on-surface {{ $cell['align'] === 'right' ? 'text-right' : ($cell['align'] === 'center' ? 'text-center' : '') }}" />
+                                @endforeach
+                            </native:row>
+                            @foreach ($block['rows'] as $row)
+                                <native:row class="w-full border-t border-theme-outline-variant">
+                                    @foreach ($row as $cell)
+                                        <native:text
+                                            :text="$cell['text']"
+                                            class="flex-1 px-3 py-2 text-sm text-theme-on-surface {{ $cell['align'] === 'right' ? 'text-right' : ($cell['align'] === 'center' ? 'text-center' : '') }}" />
+                                    @endforeach
+                                </native:row>
+                            @endforeach
+                        </native:column>
+                    @elseif ($block['type'] === 'code')
+                        <native:text
+                            :text="$block['text']"
+                            font="mono"
+                            class="w-full px-3 py-2 rounded-xl bg-theme-surface text-sm text-theme-on-surface" />
+                    @else
+                        <native:text :text="$block['text']" class="w-full text-base text-theme-on-surface" />
+                    @endif
+                @endforeach
+            </native:column>
+        @else
+            @include('native.partials.highlighted-code', ['highlighted' => $highlighted, 'body' => $body])
+        @endif
 
         @if ($truncated)
             <native:button

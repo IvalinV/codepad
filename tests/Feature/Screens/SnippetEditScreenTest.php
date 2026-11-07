@@ -73,6 +73,21 @@ it('creates a new snippet and renders it', function () {
         ->and($snippet->renders()->count())->toBe(2);
 });
 
+it('creates a markdown snippet and renders both themes', function () {
+    Native::test(SnippetEditScreen::class)
+        ->set('body', "# Heading\n\n**important**")
+        ->select('changeLanguage', 'Markdown')
+        ->press('save')
+        ->assertReplacedWith('/');
+
+    $snippet = Snippet::query()->sole();
+
+    expect($snippet->language)->toBe(Language::Markdown)
+        ->and($snippet->renders()->count())->toBe(2)
+        ->and(app(SnippetRenderer::class)->renderFor($snippet, ThemeVariant::Light))->not->toBeNull()
+        ->and(app(SnippetRenderer::class)->renderFor($snippet, ThemeVariant::Dark))->not->toBeNull();
+});
+
 it('defaults a new snippet to the last language used', function () {
     app(Preferences::class)->rememberLanguage(Language::Rust);
 

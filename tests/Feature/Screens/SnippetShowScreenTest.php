@@ -238,6 +238,60 @@ it('re-renders both themes when the language changes', function () {
         ->and(app(SnippetRenderer::class)->renderFor($snippet, ThemeVariant::Dark))->not->toBeNull();
 });
 
+it('re-renders both themes when changing a snippet to markdown', function () {
+    $snippet = Snippet::factory()->create([
+        'body' => "# Heading\n\n**important**",
+        'language' => Language::PlainText,
+    ]);
+    app(SnippetRenderer::class)->refresh($snippet);
+
+    Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])
+        ->select('changeLanguage', 'Markdown');
+
+    $snippet->refresh();
+
+    expect($snippet->language)->toBe(Language::Markdown)
+        ->and($snippet->renders()->count())->toBe(2)
+        ->and(app(SnippetRenderer::class)->renderFor($snippet, ThemeVariant::Light))->not->toBeNull()
+        ->and(app(SnippetRenderer::class)->renderFor($snippet, ThemeVariant::Dark))->not->toBeNull();
+});
+
+it('renders markdown headings as native heading blocks', function () {
+    $snippet = Snippet::factory()->create([
+        'body' => "# Heading\n\n## Heading 2\n\n### Heading 3",
+        'language' => Language::Markdown,
+    ]);
+
+    $tree = Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree();
+    $rendered = json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+    expect($rendered)->toContain('"font_size":30')
+        ->and($rendered)->toContain('"font_size":24')
+        ->and($rendered)->toContain('"font_size":20')
+        ->and($rendered)->toContain('"font_weight":6')
+        ->and($rendered)->toContain('Heading 2');
+});
+
+it('renders markdown tables as native rows and cells', function () {
+    $snippet = Snippet::factory()->create([
+        'body' => <<<'MARKDOWN'
+| Тип интеграция | Цена за портал |
+|---|---:|
+| XML / RSS / Feed интеграция | 300 – 800 EUR |
+| Стандартна API интеграция | 800 – 1 500 EUR |
+MARKDOWN,
+        'language' => Language::Markdown,
+    ]);
+
+    $tree = Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree();
+    $rendered = json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+    expect($rendered)->toContain('Тип интеграция')
+        ->and($rendered)->toContain('Цена за портал')
+        ->and($rendered)->toContain('XML / RSS / Feed интеграция')
+        ->and($rendered)->toContain('300 – 800 EUR');
+});
+
 it('does not re-highlight when the picker reselects the language already in use', function () {
     $snippet = Snippet::factory()->create(['body' => "<?php\necho 'hi';", 'language' => Language::Php]);
     app(SnippetRenderer::class)->refresh($snippet);

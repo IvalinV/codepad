@@ -30,6 +30,7 @@
         "laravel/boost": "^2.0",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
+        "league/commonmark": "^2.8",
         "nativephp/mobile": "4.0.0",
         "nativephp/mobile-clipboard": "^1.0",
         "nativephp/mobile-share": "^1.0",

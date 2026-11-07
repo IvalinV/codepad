@@ -6,6 +6,7 @@ use App\Enums\Language;
 use App\Models\Snippet;
 use App\Support\Highlighting\HighlightedCode;
 use App\Support\Highlighting\SnippetRenderer;
+use App\Support\Markdown\MarkdownRenderer;
 use App\Support\Preferences;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
@@ -63,6 +64,9 @@ class SnippetShowScreen extends NativeComponent
 
         $highlighted = app(SnippetRenderer::class)
             ->renderFor($this->snippet, app(Preferences::class)->activeTheme());
+        $markdown = $this->snippet->language === Language::Markdown
+            ? app(MarkdownRenderer::class)->render((string) $this->snippet->body)
+            : null;
 
         $totalLines = $highlighted?->lineCount() ?? $this->bodyLineCount();
         $truncated = ! $this->showAllLines && $totalLines > self::LINE_CAP;
@@ -70,6 +74,7 @@ class SnippetShowScreen extends NativeComponent
         return view('native.snippets.show', [
             'snippet' => $this->snippet,
             'highlighted' => $this->visibleLines($highlighted, $truncated),
+            'markdown' => $markdown,
             'body' => $this->visibleBody($highlighted, $truncated),
             'totalLines' => $totalLines,
             'truncated' => $truncated,

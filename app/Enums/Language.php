@@ -7,6 +7,7 @@ use Phiki\Grammar\Grammar;
 enum Language: string
 {
     case PlainText = 'plaintext';
+    case Markdown = 'markdown';
     case Php = 'php';
     case JavaScript = 'javascript';
     case TypeScript = 'typescript';
@@ -27,6 +28,7 @@ enum Language: string
     {
         return match ($this) {
             self::PlainText => Grammar::Txt,
+            self::Markdown => Grammar::Markdown,
             self::Php => Grammar::Php,
             self::JavaScript => Grammar::Javascript,
             self::TypeScript => Grammar::Typescript,
@@ -68,6 +70,7 @@ enum Language: string
     {
         return match ($this) {
             self::PlainText => 'Plain text',
+            self::Markdown => 'Markdown',
             self::Php => 'PHP',
             self::JavaScript => 'JavaScript',
             self::TypeScript => 'TypeScript',
