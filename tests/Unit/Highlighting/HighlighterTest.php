@@ -15,6 +15,19 @@ it('highlights php into coloured runs', function () {
         ->and($result->lineCount())->toBe(2);
 });
 
+it('highlights markdown into themed coloured runs', function () {
+    $markdown = "# Heading\n\n**important** [link](https://example.com)\n\n- item";
+
+    $light = app(Highlighter::class)->highlight($markdown, Language::Markdown, ThemeVariant::Light);
+    $dark = app(Highlighter::class)->highlight($markdown, Language::Markdown, ThemeVariant::Dark);
+
+    expect($light)->toBeInstanceOf(HighlightedCode::class)
+        ->and($light->lineCount())->toBe(5)
+        ->and(collect($light->toArray())->flatten(1)->pluck('color')->unique())->toHaveCount(3)
+        ->and(collect($dark->toArray())->flatten(1)->pluck('color')->unique())->toHaveCount(3)
+        ->and($light->toArray())->not->toBe($dark->toArray());
+});
+
 it('produces different colours for the two themes', function () {
     $highlighter = app(Highlighter::class);
     $code = "<?php\necho 'hi';";

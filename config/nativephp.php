@@ -130,7 +130,7 @@ return [
         'storage/framework/testing',
         'storage/logs/laravel.log',
 
-        // Phiki grammars — only 16 are used by App\Enums\Language, plus the
+        // Phiki grammars — only 17 are used by App\Enums\Language, plus the
         // transitive closure of grammars they `include` (e.g. php pulls in
         // html/js/css/sql; ruby pulls in haml/markdown/shell/etc. for heredocs).
         // csharp.json and ruby.json are deliberately absent from this list,

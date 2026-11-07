@@ -38,6 +38,10 @@ final class CodePalette
                 ['scope' => ['constant', 'number'], 'settings' => ['foreground' => $colors['accent']]],
                 ['scope' => ['keyword', 'storage'], 'settings' => ['foreground' => $colors['primary']]],
                 ['scope' => ['entity.name.function', 'support.function'], 'settings' => ['foreground' => $colors['primary']]],
+                ['scope' => ['markup.heading', 'entity.name.section', 'markup.list', 'markup.fenced_code'], 'settings' => ['foreground' => $colors['primary']]],
+                ['scope' => ['markup.bold', 'markup.italic'], 'settings' => ['foreground' => $colors['accent']]],
+                ['scope' => ['string.other.link', 'markup.underline.link'], 'settings' => ['foreground' => $colors['success']]],
+                ['scope' => ['punctuation.definition.heading', 'punctuation.definition.markdown'], 'settings' => ['foreground' => $colors['primary']]],
                 ['scope' => ['invalid'], 'settings' => ['foreground' => $colors['destructive']]],
             ],
         ];
