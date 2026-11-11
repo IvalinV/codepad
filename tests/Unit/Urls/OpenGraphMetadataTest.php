@@ -4,6 +4,7 @@ use App\Support\Urls\OpenGraphMetadata;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Psr\Http\Message\StreamInterface;
 use Tests\TestCase;
 
 uses(TestCase::class);
@@ -29,6 +30,26 @@ it('extracts the supported open graph properties from html', function () {
         'description' => 'Example description',
         'image' => 'https://example.com/image.png',
         'siteName' => 'Example site',
+    ]);
+});
+
+it('reads streamed html until the response ends', function () {
+    $stream = Mockery::mock(StreamInterface::class);
+    $stream->shouldReceive('read')
+        ->twice()
+        ->andReturn(
+            '<meta property="og:title" content="Chunked title">',
+            '<meta property="og:description" content="Chunked description">',
+        );
+    $stream->shouldReceive('eof')->twice()->andReturn(false, true);
+
+    Http::fake([
+        'https://example.com/*' => Http::response($stream, 200, ['Content-Type' => 'text/html']),
+    ]);
+
+    expect(app(OpenGraphMetadata::class)->fetch('https://example.com/page'))->toBe([
+        'title' => 'Chunked title',
+        'description' => 'Chunked description',
     ]);
 });
 

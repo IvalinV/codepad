@@ -56,9 +56,23 @@ final class OpenGraphMetadata
         }
 
         $stream = $response->toPsrResponse()->getBody();
-        $html = $stream->read(self::MAX_RESPONSE_BYTES + 1);
+        $html = '';
 
-        if (strlen($html) > self::MAX_RESPONSE_BYTES || ! $stream->eof()) {
+        while (true) {
+            $remaining = self::MAX_RESPONSE_BYTES + 1 - strlen($html);
+            $chunk = $stream->read(min(8192, $remaining));
+            $html .= $chunk;
+
+            if ($stream->eof()) {
+                break;
+            }
+
+            if ($chunk === '' || $remaining <= 0) {
+                return null;
+            }
+        }
+
+        if (strlen($html) > self::MAX_RESPONSE_BYTES) {
             return null;
         }
 
