@@ -7,6 +7,7 @@ use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\CommonMark\Node\Block\FencedCode;
 use League\CommonMark\Extension\CommonMark\Node\Block\Heading;
 use League\CommonMark\Extension\CommonMark\Node\Block\ListBlock;
+use League\CommonMark\Extension\CommonMark\Node\Inline\Link;
 use League\CommonMark\Extension\Table\Table;
 use League\CommonMark\Extension\Table\TableCell;
 use League\CommonMark\Extension\Table\TableExtension;
@@ -15,9 +16,12 @@ use League\CommonMark\Node\Block\AbstractBlock;
 use League\CommonMark\Node\Node;
 use League\CommonMark\Node\StringContainerInterface;
 use League\CommonMark\Parser\MarkdownParser;
+use App\Support\Urls\UrlSegmenter;
 
 final class MarkdownRenderer
 {
+    public function __construct(private readonly UrlSegmenter $urlSegmenter) {}
+
     /** @return list<array<string, mixed>> */
     public function render(string $markdown): array
     {
@@ -47,6 +51,7 @@ final class MarkdownRenderer
                 'type' => 'heading',
                 'level' => $block->getLevel(),
                 'text' => $this->textContent($block),
+                'segments' => $this->inlineSegments($block),
             ];
         }
 
@@ -63,7 +68,10 @@ final class MarkdownRenderer
                 'type' => 'list',
                 'ordered' => $block->getListData()->type === ListBlock::TYPE_ORDERED,
                 'items' => array_map(
-                    fn (Node $item): array => ['text' => $this->textContent($item)],
+                    fn (Node $item): array => [
+                        'text' => $this->textContent($item),
+                        'segments' => $this->inlineSegments($item),
+                    ],
                     iterator_to_array($block->children()),
                 ),
             ];
@@ -100,8 +108,9 @@ final class MarkdownRenderer
         }
 
         return [
-            'type' => 'paragraph',
-            'text' => $this->textContent($block),
+                'type' => 'paragraph',
+                'text' => $this->textContent($block),
+                'segments' => $this->inlineSegments($block),
         ];
     }
 
@@ -120,16 +129,51 @@ final class MarkdownRenderer
         return $text;
     }
 
+    /** @return list<array{type: 'text'|'link', text: string, url?: string}> */
+    private function inlineSegments(Node $node): array
+    {
+        $segments = [];
+
+        foreach ($node->children() as $child) {
+            if ($child instanceof Link) {
+                $label = $this->textContent($child);
+                $url = $child->getUrl();
+                $validated = filter_var($url, FILTER_VALIDATE_URL) !== false
+                    && in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true);
+
+                $segments[] = $validated
+                    ? ['type' => 'link', 'text' => $label, 'url' => $url]
+                    : ['type' => 'text', 'text' => $label];
+
+                continue;
+            }
+
+            if ($child instanceof StringContainerInterface) {
+                $segments = [...$segments, ...$this->urlSegmenter->segment($child->getLiteral())];
+                continue;
+            }
+
+            $segments = [...$segments, ...$this->inlineSegments($child)];
+        }
+
+        return $segments;
+    }
+
     /** @return array{text: string, align: string|null} */
     private function renderTableCell(Node $cell): array
     {
         if (! $cell instanceof TableCell) {
-            return ['text' => $this->textContent($cell), 'align' => null];
+            return [
+                'text' => $this->textContent($cell),
+                'align' => null,
+                'segments' => $this->inlineSegments($cell),
+            ];
         }
 
         return [
             'text' => $this->textContent($cell),
             'align' => $cell->getAlign(),
+            'segments' => $this->inlineSegments($cell),
         ];
     }
 }
