@@ -29,11 +29,11 @@
     <native:text class="w-full font-mono text-sm select-text">
         @foreach ($highlighted->toArray() as $index => $runs)
             @if ($index > 0)
-                <native:text :text="$newline"></native:text>
+                <native:text class="whitespace-pre-wrap" :text="$newline"></native:text>
             @endif
 
             @foreach ($runs as $run)
-                <native:text :text="$run['text']" :color="$run['color']"></native:text>
+                <native:text class="whitespace-pre-wrap" :text="$run['text']" :color="$run['color']"></native:text>
             @endforeach
         @endforeach
     </native:text>
