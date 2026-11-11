@@ -9,6 +9,7 @@ use App\Support\Highlighting\SnippetRenderer;
 use App\Support\Markdown\MarkdownRenderer;
 use App\Support\PlainText\PlainTextRenderer;
 use App\Support\Preferences;
+use App\Support\Urls\OpenGraphMetadata;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
 use Native\Mobile\Facades\Browser;
@@ -74,6 +75,17 @@ class SnippetShowScreen extends NativeComponent
         $plainText = $this->snippet->language === Language::PlainText
             ? app(PlainTextRenderer::class)->render($this->visiblePlainText($truncated))
             : null;
+
+        if ($plainText !== null) {
+            $metadata = app(OpenGraphMetadata::class);
+
+            foreach ($plainText as &$segment) {
+                if ($segment['type'] === 'link') {
+                    $segment['preview'] = $metadata->fetch($segment['url']);
+                }
+            }
+            unset($segment);
+        }
 
         return view('native.snippets.show', [
             'snippet' => $this->snippet,

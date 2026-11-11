@@ -6,6 +6,7 @@ use App\Models\Snippet;
 use App\Models\SnippetRender;
 use App\Native\SnippetShowScreen;
 use App\Support\Highlighting\SnippetRenderer;
+use Illuminate\Support\Facades\Http;
 use Native\Mobile\System;
 use Native\Mobile\Facades\Browser;
 use Native\Mobile\Testing\Native;
@@ -312,6 +313,10 @@ it('renders markdown urls as clickable links without open graph previews', funct
 });
 
 it('renders plain text urls as clickable links without a preview fallback', function () {
+    Http::fake([
+        'https://example.com/*' => Http::response('', 204),
+    ]);
+
     $snippet = Snippet::factory()->create([
         'body' => 'Visit https://example.com/docs for details.',
         'language' => Language::PlainText,
@@ -326,6 +331,47 @@ it('renders plain text urls as clickable links without a preview fallback', func
         ->toContain('https://example.com/docs')
         ->toContain('"type":"pressable"')
         ->not->toContain('open_graph_preview');
+});
+
+it('renders an open graph preview for plain text urls only', function () {
+    $requests = 0;
+    Http::fake(function () use (&$requests) {
+        $requests++;
+
+        return Http::response(<<<'HTML'
+            <meta property="og:title" content="Example title">
+            <meta property="og:description" content="Example description">
+            <meta property="og:site_name" content="Example site">
+            HTML, 200, ['Content-Type' => 'text/html']);
+    });
+
+    $plainTextSnippet = Snippet::factory()->create([
+        'body' => 'Visit https://example.com/docs.',
+        'language' => Language::PlainText,
+    ]);
+    $plainText = json_encode(
+        Native::test(SnippetShowScreen::class, ['snippet' => (string) $plainTextSnippet->id])->tree(),
+        JSON_UNESCAPED_SLASHES,
+    );
+
+    expect($plainText)
+        ->toContain('Example title')
+        ->toContain('Example description')
+        ->toContain('Example site');
+
+    $markdownSnippet = Snippet::factory()->create([
+        'body' => '[Example](https://example.com/docs)',
+        'language' => Language::Markdown,
+    ]);
+    $markdown = json_encode(
+        Native::test(SnippetShowScreen::class, ['snippet' => (string) $markdownSnippet->id])->tree(),
+        JSON_UNESCAPED_SLASHES,
+    );
+
+    expect($markdown)
+        ->toContain('Example')
+        ->not->toContain('Example title')
+        ->and($requests)->toBe(1);
 });
 
 it('renders markdown urls in lists and table cells as clickable links', function () {
