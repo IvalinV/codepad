@@ -374,6 +374,30 @@ it('renders an open graph preview for plain text urls only', function () {
         ->and($requests)->toBe(1);
 });
 
+it('limits plain text open graph lookups per screen render', function () {
+    $requests = 0;
+    Http::fake(function () use (&$requests) {
+        $requests++;
+
+        return Http::response('<meta property="og:title" content="Example">', 200, [
+            'Content-Type' => 'text/html',
+        ]);
+    });
+
+    $urls = array_map(
+        fn (int $number): string => "https://example.com/page-{$number}",
+        range(1, 6),
+    );
+    $snippet = Snippet::factory()->create([
+        'body' => implode(' ', $urls),
+        'language' => Language::PlainText,
+    ]);
+
+    Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree();
+
+    expect($requests)->toBe(5);
+});
+
 it('renders markdown urls in lists and table cells as clickable links', function () {
     $snippet = Snippet::factory()->create([
         'body' => "- https://list.test/item\n\n| Link |\n| --- |\n| [Cell](https://cell.test) |",

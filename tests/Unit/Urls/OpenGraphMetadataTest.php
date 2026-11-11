@@ -1,6 +1,7 @@
 <?php
 
 use App\Support\Urls\OpenGraphMetadata;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -41,6 +42,14 @@ it('returns no metadata for incomplete or malformed responses', function () {
     expect(app(OpenGraphMetadata::class)->fetch('https://example.com/page'))->toBeNull();
 });
 
+it('returns no metadata when the remote request fails', function () {
+    Http::fake(function () {
+        throw new ConnectionException('connection failed');
+    });
+
+    expect(app(OpenGraphMetadata::class)->fetch('https://example.com/page'))->toBeNull();
+});
+
 it('does not parse oversized responses', function () {
     Http::fake([
         'https://example.com/*' => Http::response(str_repeat('x', 1_000_001), 200, [
@@ -77,4 +86,17 @@ it('rejects unsupported and private urls before fetching', function () {
         ->and($fetcher->fetch('http://127.0.0.1/private'))->toBeNull();
 
     Http::assertNothingSent();
+});
+
+it('omits unsafe open graph images while keeping safe metadata', function () {
+    Http::fake([
+        'https://example.com/*' => Http::response(<<<'HTML'
+            <meta property="og:title" content="Example title">
+            <meta property="og:image" content="file:///private/image.png">
+            HTML, 200, ['Content-Type' => 'text/html']),
+    ]);
+
+    expect(app(OpenGraphMetadata::class)->fetch('https://example.com/page'))->toBe([
+        'title' => 'Example title',
+    ]);
 });

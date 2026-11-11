@@ -35,6 +35,8 @@ class SnippetShowScreen extends NativeComponent
      */
     private const LINE_CAP = 300;
 
+    private const PREVIEW_CAP = 5;
+
     public bool $showAllLines = false;
 
     public bool $confirmingDelete = false;
@@ -78,10 +80,12 @@ class SnippetShowScreen extends NativeComponent
 
         if ($plainText !== null) {
             $metadata = app(OpenGraphMetadata::class);
+            $previewCount = 0;
 
             foreach ($plainText as &$segment) {
-                if ($segment['type'] === 'link') {
+                if ($segment['type'] === 'link' && $previewCount < self::PREVIEW_CAP) {
                     $segment['preview'] = $metadata->fetch($segment['url']);
+                    $previewCount++;
                 }
             }
             unset($segment);
