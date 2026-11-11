@@ -11,6 +11,7 @@ use App\Support\PlainText\PlainTextRenderer;
 use App\Support\Preferences;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
+use Native\Mobile\Facades\Browser;
 use Native\Mobile\Facades\Dialog;
 use Native\Mobile\Facades\Share;
 use NativePHP\Clipboard\Facades\Clipboard;
@@ -117,6 +118,21 @@ class SnippetShowScreen extends NativeComponent
     public function showEverything(): void
     {
         $this->showAllLines = true;
+    }
+
+    public function openUrl(string $url): void
+    {
+        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return;
+        }
+
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+
+        if (! in_array($scheme, ['http', 'https'], true)) {
+            return;
+        }
+
+        Browser::open($url);
     }
 
     public function edit(): void

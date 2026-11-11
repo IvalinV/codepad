@@ -7,6 +7,7 @@ use App\Models\SnippetRender;
 use App\Native\SnippetShowScreen;
 use App\Support\Highlighting\SnippetRenderer;
 use Native\Mobile\System;
+use Native\Mobile\Facades\Browser;
 use Native\Mobile\Testing\Native;
 
 beforeEach(function () {
@@ -342,6 +343,29 @@ it('renders markdown urls in lists and table cells as clickable links', function
         ->toContain('https://list.test/item')
         ->toContain('Cell')
         ->toContain('"type":"pressable"');
+});
+
+it('openUrl opens valid urls in the system browser', function () {
+    Browser::shouldReceive('open')
+        ->once()
+        ->with('https://example.com')
+        ->andReturnTrue();
+
+    $snippet = Snippet::factory()->create();
+
+    Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])
+        ->call('openUrl', 'https://example.com');
+});
+
+it('openUrl does not open unsupported or malformed urls', function () {
+    Browser::shouldReceive('open')->never();
+
+    $snippet = Snippet::factory()->create();
+    $screen = Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id]);
+
+    $screen->call('openUrl', 'javascript:alert(1)');
+    $screen->call('openUrl', 'file:///tmp/example');
+    $screen->call('openUrl', 'not a url');
 });
 
 it('does not re-highlight when the picker reselects the language already in use', function () {
