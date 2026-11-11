@@ -7,6 +7,7 @@ use App\Models\Snippet;
 use App\Support\Highlighting\HighlightedCode;
 use App\Support\Highlighting\SnippetRenderer;
 use App\Support\Markdown\MarkdownRenderer;
+use App\Support\PlainText\PlainTextRenderer;
 use App\Support\Preferences;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
@@ -67,14 +68,17 @@ class SnippetShowScreen extends NativeComponent
         $markdown = $this->snippet->language === Language::Markdown
             ? app(MarkdownRenderer::class)->render((string) $this->snippet->body)
             : null;
-
         $totalLines = $highlighted?->lineCount() ?? $this->bodyLineCount();
         $truncated = ! $this->showAllLines && $totalLines > self::LINE_CAP;
+        $plainText = $this->snippet->language === Language::PlainText
+            ? app(PlainTextRenderer::class)->render($this->visiblePlainText($truncated))
+            : null;
 
         return view('native.snippets.show', [
             'snippet' => $this->snippet,
             'highlighted' => $this->visibleLines($highlighted, $truncated),
             'markdown' => $markdown,
+            'plainText' => $plainText,
             'body' => $this->visibleBody($highlighted, $truncated),
             'totalLines' => $totalLines,
             'truncated' => $truncated,
@@ -189,6 +193,17 @@ class SnippetShowScreen extends NativeComponent
             return null;
         }
 
+        $body = (string) $this->snippet?->body;
+
+        if (! $truncated) {
+            return $body;
+        }
+
+        return implode("\n", array_slice(preg_split('/\R/u', $body) ?: [], 0, self::LINE_CAP));
+    }
+
+    private function visiblePlainText(bool $truncated): string
+    {
         $body = (string) $this->snippet?->body;
 
         if (! $truncated) {

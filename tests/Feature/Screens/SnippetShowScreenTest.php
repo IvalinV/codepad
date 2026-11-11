@@ -292,6 +292,58 @@ MARKDOWN,
         ->and($rendered)->toContain('300 – 800 EUR');
 });
 
+it('renders markdown urls as clickable links without open graph previews', function () {
+    $snippet = Snippet::factory()->create([
+        'body' => "Read [Laravel](https://laravel.com) and https://example.com/docs.",
+        'language' => Language::Markdown,
+    ]);
+
+    $rendered = json_encode(
+        Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree(),
+        JSON_UNESCAPED_SLASHES,
+    );
+
+    expect($rendered)
+        ->toContain('Laravel')
+        ->toContain('https://example.com/docs')
+        ->toContain('"type":"pressable"')
+        ->not->toContain('open_graph_preview');
+});
+
+it('renders plain text urls as clickable links without a preview fallback', function () {
+    $snippet = Snippet::factory()->create([
+        'body' => 'Visit https://example.com/docs for details.',
+        'language' => Language::PlainText,
+    ]);
+
+    $rendered = json_encode(
+        Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree(),
+        JSON_UNESCAPED_SLASHES,
+    );
+
+    expect($rendered)
+        ->toContain('https://example.com/docs')
+        ->toContain('"type":"pressable"')
+        ->not->toContain('open_graph_preview');
+});
+
+it('renders markdown urls in lists and table cells as clickable links', function () {
+    $snippet = Snippet::factory()->create([
+        'body' => "- https://list.test/item\n\n| Link |\n| --- |\n| [Cell](https://cell.test) |",
+        'language' => Language::Markdown,
+    ]);
+
+    $rendered = json_encode(
+        Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree(),
+        JSON_UNESCAPED_SLASHES,
+    );
+
+    expect($rendered)
+        ->toContain('https://list.test/item')
+        ->toContain('Cell')
+        ->toContain('"type":"pressable"');
+});
+
 it('does not re-highlight when the picker reselects the language already in use', function () {
     $snippet = Snippet::factory()->create(['body' => "<?php\necho 'hi';", 'language' => Language::Php]);
     app(SnippetRenderer::class)->refresh($snippet);
