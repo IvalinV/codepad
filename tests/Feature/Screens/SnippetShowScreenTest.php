@@ -7,8 +7,8 @@ use App\Models\SnippetRender;
 use App\Native\SnippetShowScreen;
 use App\Support\Highlighting\SnippetRenderer;
 use Illuminate\Support\Facades\Http;
-use Native\Mobile\System;
 use Native\Mobile\Facades\Browser;
+use Native\Mobile\System;
 use Native\Mobile\Testing\Native;
 
 beforeEach(function () {
@@ -296,7 +296,7 @@ MARKDOWN,
 
 it('renders markdown urls as clickable links without open graph previews', function () {
     $snippet = Snippet::factory()->create([
-        'body' => "Read [Laravel](https://laravel.com) and https://example.com/docs.",
+        'body' => 'Read [Laravel](https://laravel.com) and https://example.com/docs.',
         'language' => Language::Markdown,
     ]);
 

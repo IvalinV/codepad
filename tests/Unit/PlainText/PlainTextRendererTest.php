@@ -4,7 +4,7 @@ use App\Support\PlainText\PlainTextRenderer;
 
 it('detects multiple plain text urls without trailing punctuation', function () {
     $segments = app(PlainTextRenderer::class)->render(
-        "Read https://example.com/docs, then visit http://example.test/path."
+        'Read https://example.com/docs, then visit http://example.test/path.'
     );
 
     expect($segments)->toBe([

@@ -2,6 +2,7 @@
 
 namespace App\Support\Markdown;
 
+use App\Support\Urls\UrlSegmenter;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\CommonMark\Node\Block\FencedCode;
@@ -16,7 +17,6 @@ use League\CommonMark\Node\Block\AbstractBlock;
 use League\CommonMark\Node\Node;
 use League\CommonMark\Node\StringContainerInterface;
 use League\CommonMark\Parser\MarkdownParser;
-use App\Support\Urls\UrlSegmenter;
 
 final class MarkdownRenderer
 {
@@ -108,9 +108,9 @@ final class MarkdownRenderer
         }
 
         return [
-                'type' => 'paragraph',
-                'text' => $this->textContent($block),
-                'segments' => $this->inlineSegments($block),
+            'type' => 'paragraph',
+            'text' => $this->textContent($block),
+            'segments' => $this->inlineSegments($block),
         ];
     }
 
@@ -150,6 +150,7 @@ final class MarkdownRenderer
 
             if ($child instanceof StringContainerInterface) {
                 $segments = [...$segments, ...$this->urlSegmenter->segment($child->getLiteral())];
+
                 continue;
             }
 

@@ -1,10 +1,11 @@
 <?php
 
-uses(Tests\TestCase::class);
-
 use App\Support\Urls\OpenGraphMetadata;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
+
+uses(TestCase::class);
 
 beforeEach(function () {
     Cache::flush();
