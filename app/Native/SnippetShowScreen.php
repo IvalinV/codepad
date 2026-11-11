@@ -89,6 +89,8 @@ class SnippetShowScreen extends NativeComponent
                 }
             }
             unset($segment);
+
+            $plainText = $this->splitPlainTextSegments($plainText);
         }
 
         return view('native.snippets.show', [
@@ -243,6 +245,40 @@ class SnippetShowScreen extends NativeComponent
         }
 
         return implode("\n", array_slice(preg_split('/\R/u', $body) ?: [], 0, self::LINE_CAP));
+    }
+
+    /** @param list<array{type: 'text'|'link', text: string, url?: string, preview?: array|null}> $segments */
+    private function splitPlainTextSegments(array $segments): array
+    {
+        $lines = [[]];
+
+        foreach ($segments as $segment) {
+            if ($segment['type'] === 'link') {
+                $lines[array_key_last($lines)][] = $segment;
+
+                continue;
+            }
+
+            $parts = explode("\n", $segment['text']);
+
+            foreach ($parts as $index => $part) {
+                if ($part !== '') {
+                    $lines[array_key_last($lines)][] = [
+                        'type' => 'text',
+                        'text' => $part,
+                    ];
+                }
+
+                if ($index < count($parts) - 1) {
+                    $lines[] = [];
+                }
+            }
+        }
+
+        return array_map(
+            fn (array $line): array => $line === [] ? [['type' => 'text', 'text' => '']] : $line,
+            $lines,
+        );
     }
 
     private function bodyLineCount(): int

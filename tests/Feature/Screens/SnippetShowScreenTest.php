@@ -415,6 +415,46 @@ it('renders markdown urls in lists and table cells as clickable links', function
         ->toContain('"type":"pressable"');
 });
 
+it('keeps ordered markdown list content in the marker row width', function () {
+    $snippet = Snippet::factory()->create([
+        'body' => "1. First item\n2. Second item",
+        'language' => Language::Markdown,
+    ]);
+
+    $tree = Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree();
+    $listRow = collect(nodesOfType($tree, 'row'))->first(
+        fn (array $node): bool => collect($node['children'] ?? [])
+            ->contains(fn (array $child): bool => ($child['props']['text'] ?? null) === '1.'),
+    );
+    $inlineRow = collect($listRow['children'] ?? [])->first(
+        fn (array $child): bool => ($child['type'] ?? null) === 'row',
+    );
+
+    expect($inlineRow)->not->toBeNull()
+        ->and($inlineRow['layout']['width'] ?? null)->not->toBe('fill');
+});
+
+it('keeps plain text source lines in separate vertical rows', function () {
+    $snippet = Snippet::factory()->create([
+        'body' => "first line\nVisit https://example.com/docs\nlast line",
+        'language' => Language::PlainText,
+    ]);
+
+    Http::fake([
+        'https://example.com/*' => Http::response('', 204),
+    ]);
+
+    $tree = Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree();
+    $scrollView = nodesOfType($tree, 'scroll_view')[0];
+    $content = $scrollView['children'][0] ?? [];
+
+    expect($content['type'] ?? null)->toBe('column')
+        ->and($content['children'] ?? [])->toHaveCount(3)
+        ->and(collect($content['children'] ?? [])->every(
+            fn (array $child): bool => ($child['type'] ?? null) === 'row',
+        ))->toBeTrue();
+});
+
 it('openUrl opens valid urls in the system browser', function () {
     Browser::shouldReceive('open')
         ->once()

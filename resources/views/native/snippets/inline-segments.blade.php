@@ -1,7 +1,7 @@
-<native:row class="w-full flex-wrap items-center">
+<native:row class="{{ $rowClass ?? 'w-full flex-wrap items-center' }}">
     @foreach ($segments as $segment)
         @if ($segment['type'] === 'link')
-            <native:column class="{{ $textClass }}">
+            <native:column class="{{ ! empty($segment['preview']) ? 'w-full' : '' }}">
                 <native:pressable @tap="openUrl('{{ $segment['url'] }}')">
                     <native:text
                         :text="$segment['text']"

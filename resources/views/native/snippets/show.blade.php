@@ -20,7 +20,7 @@
                     @if ($block['type'] === 'heading')
                         @include('native.snippets.inline-segments', [
                             'segments' => $block['segments'],
-                            'textClass' => 'w-full '.match ($block['level']) {
+                            'textClass' => match ($block['level']) {
                                 1 => 'text-3xl font-bold text-theme-on-background',
                                 2 => 'text-2xl font-bold text-theme-on-background',
                                 3 => 'text-xl font-bold text-theme-on-background',
@@ -28,6 +28,7 @@
                                 5 => 'text-base font-bold text-theme-on-background',
                                 default => 'text-sm font-bold text-theme-on-background',
                             },
+                            'rowClass' => 'w-full flex-wrap items-center',
                         ])
                     @elseif ($block['type'] === 'list')
                         <native:column class="w-full gap-1 pl-4">
@@ -38,7 +39,8 @@
                                         class="text-base font-semibold text-theme-primary" />
                                     @include('native.snippets.inline-segments', [
                                         'segments' => $item['segments'],
-                                        'textClass' => 'flex-1 text-base text-theme-on-surface',
+                                        'textClass' => 'text-base text-theme-on-surface',
+                                        'rowClass' => 'flex-1 flex-wrap items-center',
                                     ])
                                 </native:row>
                             @endforeach
@@ -51,6 +53,7 @@
                                         @include('native.snippets.inline-segments', [
                                             'segments' => $cell['segments'],
                                             'textClass' => 'text-sm font-bold text-theme-on-surface',
+                                            'rowClass' => 'w-full flex-wrap items-center',
                                         ])
                                     </native:column>
                                 @endforeach
@@ -62,6 +65,7 @@
                                             @include('native.snippets.inline-segments', [
                                                 'segments' => $cell['segments'],
                                                 'textClass' => 'text-sm text-theme-on-surface',
+                                                'rowClass' => 'w-full flex-wrap items-center',
                                             ])
                                         </native:column>
                                     @endforeach
@@ -76,17 +80,21 @@
                     @else
                         @include('native.snippets.inline-segments', [
                             'segments' => $block['segments'],
-                            'textClass' => 'w-full text-base text-theme-on-surface',
+                            'textClass' => 'text-base text-theme-on-surface',
+                            'rowClass' => 'w-full flex-wrap items-center',
                         ])
                     @endif
                 @endforeach
             </native:column>
         @elseif ($plainText !== null)
             <native:column class="w-full gap-3">
-                @include('native.snippets.inline-segments', [
-                    'segments' => $plainText,
-                    'textClass' => 'w-full font-mono text-sm text-theme-on-surface',
-                ])
+                @foreach ($plainText as $line)
+                    @include('native.snippets.inline-segments', [
+                        'segments' => $line,
+                        'textClass' => 'font-mono text-sm text-theme-on-surface',
+                        'rowClass' => 'w-full flex-wrap items-center',
+                    ])
+                @endforeach
             </native:column>
         @else
             @include('native.partials.highlighted-code', ['highlighted' => $highlighted, 'body' => $body])
