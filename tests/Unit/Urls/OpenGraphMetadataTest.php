@@ -99,6 +99,19 @@ it('caches metadata after the first request', function () {
         ->and($requests)->toBe(1);
 });
 
+it('does not reuse a stale negative cache entry from the previous fetcher', function () {
+    Cache::put('open_graph:'.sha1('https://example.com/page'), ['_empty' => true], 300);
+    Http::fake([
+        'https://example.com/*' => Http::response('<meta property="og:title" content="Fresh title">', 200, [
+            'Content-Type' => 'text/html',
+        ]),
+    ]);
+
+    expect(app(OpenGraphMetadata::class)->fetch('https://example.com/page'))->toBe([
+        'title' => 'Fresh title',
+    ]);
+});
+
 it('rejects unsupported and private urls before fetching', function () {
     Http::fake();
     $fetcher = app(OpenGraphMetadata::class);

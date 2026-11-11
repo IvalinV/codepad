@@ -11,6 +11,8 @@ final class OpenGraphMetadata
 {
     private const MAX_RESPONSE_BYTES = 1_000_000;
 
+    private const CACHE_VERSION = 'v2';
+
     /** @return array{title?: string, description?: string, image?: string, siteName?: string}|null */
     public function fetch(string $url): ?array
     {
@@ -18,7 +20,7 @@ final class OpenGraphMetadata
             return null;
         }
 
-        $key = 'open_graph:'.sha1($url);
+        $key = 'open_graph:'.self::CACHE_VERSION.':'.sha1($url);
         $cached = Cache::get($key);
 
         if (is_array($cached)) {
