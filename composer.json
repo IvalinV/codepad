@@ -27,6 +27,7 @@
     ],
     "require": {
         "php": "^8.2",
+        "ext-curl": "*",
         "laravel/boost": "^2.0",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
