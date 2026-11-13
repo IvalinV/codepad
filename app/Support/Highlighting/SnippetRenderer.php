@@ -16,11 +16,13 @@ use App\Models\Snippet;
  */
 final class SnippetRenderer
 {
+    private const RENDER_VERSION = 'v2';
+
     public function __construct(private readonly Highlighter $highlighter) {}
 
     public function hashFor(Snippet $snippet): string
     {
-        return hash('xxh128', $snippet->body.'|'.$snippet->language->value);
+        return hash('xxh128', self::RENDER_VERSION.'|'.$snippet->body.'|'.$snippet->language->value);
     }
 
     public function refresh(Snippet $snippet): void
@@ -41,10 +43,24 @@ final class SnippetRenderer
     {
         $render = $snippet->renders()->firstWhere('theme', $theme);
 
-        if ($render === null || $render->hash !== $this->hashFor($snippet)) {
+        if ($render === null) {
             return null;
         }
 
+        if ($render->hash !== $this->hashFor($snippet)) {
+            if ($render->hash !== $this->legacyHashFor($snippet)) {
+                return null;
+            }
+
+            $this->refresh($snippet);
+            $render = $snippet->renders()->firstWhere('theme', $theme);
+        }
+
         return HighlightedCode::fromArray($render->content);
+    }
+
+    private function legacyHashFor(Snippet $snippet): string
+    {
+        return hash('xxh128', $snippet->body.'|'.$snippet->language->value);
     }
 }

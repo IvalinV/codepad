@@ -26,15 +26,26 @@
 @if ($highlighted === null)
     <native:text class="w-full font-mono text-sm select-text text-theme-on-surface" :text="$body" />
 @else
-    <native:text class="w-full font-mono text-sm select-text">
-        @foreach ($highlighted->toArray() as $index => $runs)
-            @if ($index > 0)
-                <native:text :text="$newline"></native:text>
-            @endif
+    @php
+        \Native\Mobile\Edge\NativeElementCollector::textOpen([
+            'class' => 'w-full font-mono text-sm select-text whitespace-pre-wrap',
+        ]);
 
-            @foreach ($runs as $run)
-                <native:text :text="$run['text']" :color="$run['color']"></native:text>
-            @endforeach
-        @endforeach
-    </native:text>
+        foreach ($highlighted->toArray() as $index => $runs) {
+            if ($index > 0) {
+                \Native\Mobile\Edge\NativeElementCollector::textOpen(['text' => $newline]);
+                \Native\Mobile\Edge\NativeElementCollector::textClose();
+            }
+
+            foreach ($runs as $run) {
+                \Native\Mobile\Edge\NativeElementCollector::textOpen([
+                    'text' => $run['text'],
+                    'color' => $run['color'],
+                ]);
+                \Native\Mobile\Edge\NativeElementCollector::textClose();
+            }
+        }
+
+        \Native\Mobile\Edge\NativeElementCollector::textClose();
+    @endphp
 @endif

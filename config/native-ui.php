@@ -94,6 +94,14 @@ return [
             // Tertiary accent — for highlights, badges, emphasis not covered by primary.
             'accent' => '#DB2777',
             'on-accent' => '#FFFFFF',
+
+            'syntax' => [
+                'comment' => '#5B6172',
+                'string' => '#1D4ED8',
+                'number' => '#BE185D',
+                'keyword' => '#C2185B',
+                'function' => '#7C3AED',
+            ],
         ],
 
         'dark' => [
@@ -124,6 +132,14 @@ return [
 
             'accent' => '#F0ABFC',
             'on-accent' => '#2A0E1B',
+
+            'syntax' => [
+                'comment' => '#A6ACC0',
+                'string' => '#93C5FD',
+                'number' => '#F0ABFC',
+                'keyword' => '#F472B6',
+                'function' => '#A78BFA',
+            ],
         ],
 
         /*

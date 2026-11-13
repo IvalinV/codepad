@@ -5,6 +5,8 @@ use App\Support\Highlighting\PhikiTokenMapper;
 use Phiki\Grammar\Grammar;
 use Phiki\Phiki;
 use Phiki\Theme\Theme;
+use Phiki\Token\HighlightedToken;
+use Phiki\Token\Token;
 
 beforeEach(function () {
     $this->source = "<?php\n\nfunction handle(): void\n{\n    echo 'hi';\n}";
@@ -26,6 +28,16 @@ it('assigns a hex colour to every run', function () {
             expect($run['color'])->toMatch('/^#[0-9a-f]{3,8}$/i');
         }
     }
+});
+
+it('scrubs malformed token text before it reaches JSON storage', function () {
+    $malformed = "caf\xE9";
+    $tokens = [[new HighlightedToken(new Token([], $malformed, 0, strlen($malformed)), [])]];
+
+    $result = $this->mapper->map($tokens);
+
+    expect($result->toArray()[0][0]['text'])->toBe(mb_scrub($malformed, 'UTF-8'))
+        ->and(mb_check_encoding($result->toArray()[0][0]['text'], 'UTF-8'))->toBeTrue();
 });
 
 it('gives unmatched tokens the theme base foreground instead of a hardcoded default', function () {

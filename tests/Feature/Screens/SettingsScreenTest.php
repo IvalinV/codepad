@@ -115,6 +115,21 @@ it('surfaces a malformed backup as the human-readable message it already carries
     expect(Snippet::query()->count())->toBe(0);
 });
 
+it('surfaces a deeply nested backup as a human-readable problem', function () {
+    $nested = [];
+
+    for ($depth = 0; $depth < 513; $depth++) {
+        $nested = ['nested' => $nested];
+    }
+
+    Native::test(SettingsScreen::class)
+        ->set('backup', json_encode($nested, JSON_THROW_ON_ERROR, 1024))
+        ->press('import')
+        ->assertSee('That does not look like a Codepad backup.');
+
+    expect(Snippet::query()->count())->toBe(0);
+});
+
 it('surfaces an incompatible backup version', function () {
     Native::test(SettingsScreen::class)
         ->set('backup', json_encode(['version' => 99, 'snippets' => []]))

@@ -40,6 +40,22 @@ it('returns a render for a fresh snippet', function () {
     expect($this->renderer->renderFor($snippet->fresh(), ThemeVariant::Light))->not->toBeNull();
 });
 
+it('refreshes renders created with the previous syntax palette', function () {
+    $snippet = Snippet::factory()->create(['body' => '<?php echo "hi";', 'language' => Language::Php]);
+    $legacyHash = hash('xxh128', $snippet->body.'|'.$snippet->language->value);
+
+    $snippet->renders()->create([
+        'theme' => ThemeVariant::Light,
+        'content' => [[['text' => 'echo', 'color' => '#7C3AED']]],
+        'hash' => $legacyHash,
+    ]);
+
+    $render = $this->renderer->renderFor($snippet->fresh(), ThemeVariant::Light);
+
+    expect($render?->toArray()[0][0]['color'])->toBe('#C2185B')
+        ->and($snippet->fresh()->renders()->first()->hash)->toBe($this->renderer->hashFor($snippet));
+});
+
 it('returns null when no render exists yet', function () {
     expect($this->renderer->renderFor(Snippet::factory()->create(), ThemeVariant::Light))->toBeNull();
 });
