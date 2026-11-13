@@ -40,19 +40,65 @@ it('produces different colours for the two themes', function () {
 
 it('uses Codepad appearance colors for syntax tokens', function () {
     $highlighter = app(Highlighter::class);
-    $code = "<?php\necho 'hi';\n// note";
+    $code = "<?php\npublic function test(): void\n{\n    echo 'hi';\n}\n// note";
 
     $light = collect($highlighter->highlight($code, Language::Php, ThemeVariant::Light)->toArray())
         ->flatten(1);
     $dark = collect($highlighter->highlight($code, Language::Php, ThemeVariant::Dark)->toArray())
         ->flatten(1);
 
-    expect($light->firstWhere('text', 'echo')['color'])->toBe('#7C3AED')
-        ->and($light->firstWhere('text', 'hi')['color'])->toBe('#15803D')
+    expect($light->firstWhere('text', 'public')['color'])->toBe('#C2185B')
+        ->and($light->firstWhere('text', 'function')['color'])->toBe('#C2185B')
+        ->and($light->firstWhere('text', 'test')['color'])->toBe('#7C3AED')
+        ->and($light->firstWhere('text', 'hi')['color'])->toBe('#1D4ED8')
         ->and($light->firstWhere('text', '//')['color'])->toBe('#5B6172')
-        ->and($dark->firstWhere('text', 'echo')['color'])->toBe('#A78BFA')
-        ->and($dark->firstWhere('text', 'hi')['color'])->toBe('#4ADE80')
+        ->and($dark->firstWhere('text', 'public')['color'])->toBe('#F472B6')
+        ->and($dark->firstWhere('text', 'function')['color'])->toBe('#F472B6')
+        ->and($dark->firstWhere('text', 'test')['color'])->toBe('#A78BFA')
+        ->and($dark->firstWhere('text', 'hi')['color'])->toBe('#93C5FD')
         ->and($dark->firstWhere('text', '//')['color'])->toBe('#A6ACC0');
+});
+
+it('keeps representative syntax colored across every language', function (Language $language, string $code) {
+    $base = '#1E2330';
+    $colours = collect(app(Highlighter::class)->highlight($code, $language, ThemeVariant::Light)->toArray())
+        ->flatten(1)
+        ->pluck('color');
+
+    expect($colours->unique()->diff([$base]))->not->toBeEmpty();
+})->with([
+    'markdown' => [Language::Markdown, '# Heading **bold**'],
+    'php' => [Language::Php, '<?php echo $value;'],
+    'javascript' => [Language::JavaScript, 'const value = true;'],
+    'typescript' => [Language::TypeScript, "const value: string = 'x';"],
+    'python' => [Language::Python, 'def hello(): return True'],
+    'go' => [Language::Go, 'func main() { return }'],
+    'rust' => [Language::Rust, 'fn main() { let value = true; }'],
+    'java' => [Language::Java, 'class Demo {}'],
+    'csharp' => [Language::CSharp, 'class Demo { public bool Ready = true; }'],
+    'ruby' => [Language::Ruby, "def hello; puts 'hi'; end"],
+    'sql' => [Language::Sql, 'SELECT * FROM users WHERE id = 1;'],
+    'bash' => [Language::Bash, 'echo "hi"'],
+    'json' => [Language::Json, '{"enabled": true}'],
+    'yaml' => [Language::Yaml, 'enabled: true'],
+    'html' => [Language::Html, '<div class="x">Hi</div>'],
+    'css' => [Language::Css, '.box { color: red; }'],
+]);
+
+it('uses dedicated colors for SQL keywords, numbers, and strings', function () {
+    $sql = collect(app(Highlighter::class)->highlight('SELECT * FROM users WHERE id = 1;', Language::Sql, ThemeVariant::Light)->toArray())
+        ->flatten(1);
+
+    expect($sql->firstWhere('text', 'SELECT')['color'])->toBe('#C2185B')
+        ->and($sql->firstWhere('text', '1')['color'])->toBe('#BE185D');
+});
+
+it('uses dedicated colors for CSS properties and values', function () {
+    $runs = collect(app(Highlighter::class)->highlight('.box { color: red; }', Language::Css, ThemeVariant::Light)->toArray())
+        ->flatten(1);
+
+    expect($runs->firstWhere('text', 'color')['color'])->toBe('#7C3AED')
+        ->and($runs->firstWhere('text', 'red')['color'])->toBe('#DB2777');
 });
 
 it('gives unmatched tokens the dark theme base foreground, not black', function () {

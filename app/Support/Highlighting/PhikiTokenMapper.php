@@ -31,7 +31,7 @@ final class PhikiTokenMapper
             $runs = [];
 
             foreach ($lineTokens as $highlightedToken) {
-                $text = rtrim($highlightedToken->token->text, "\r\n");
+                $text = mb_scrub(rtrim($highlightedToken->token->text, "\r\n"), 'UTF-8');
 
                 if ($text === '') {
                     continue;

@@ -4,7 +4,10 @@ namespace App\Support;
 
 use App\Enums\Language;
 use App\Models\Snippet;
+use Carbon\CarbonImmutable;
 use InvalidArgumentException;
+use JsonException;
+use Throwable;
 
 final class SnippetArchive
 {
@@ -38,9 +41,13 @@ final class SnippetArchive
 
     public function import(string $json): int
     {
-        $decoded = json_decode($json, true);
+        try {
+            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw new InvalidArgumentException('That does not look like a Codepad backup.');
+        }
 
-        if (! is_array($decoded) || ! isset($decoded['snippets']) || ! is_array($decoded['snippets'])) {
+        if (! is_array($decoded) || ! isset($decoded['snippets']) || ! is_array($decoded['snippets']) || ! array_is_list($decoded['snippets'])) {
             throw new InvalidArgumentException('That does not look like a Codepad backup.');
         }
 
@@ -61,11 +68,20 @@ final class SnippetArchive
                 continue;
             }
 
-            Snippet::query()->create([
+            $snippet = Snippet::query()->create([
                 'title' => $entry['title'] ?? null,
                 'body' => $entry['body'],
                 'language' => $language,
             ]);
+
+            $timestamps = array_filter([
+                'created_at' => $this->importTimestamp($entry['created_at'] ?? null),
+                'updated_at' => $this->importTimestamp($entry['updated_at'] ?? null),
+            ]);
+
+            if ($timestamps !== []) {
+                $snippet->forceFill($timestamps)->saveQuietly();
+            }
 
             $imported++;
         }
@@ -88,14 +104,29 @@ final class SnippetArchive
     {
         $title = $entry['title'] ?? null;
 
-        if (! is_string($title) && $title !== null) {
+        if ((! is_string($title) && $title !== null) || mb_strlen((string) $title) > 255) {
             return false;
         }
 
-        if (! isset($entry['body']) || ! is_string($entry['body']) || mb_strlen($entry['body']) > self::MAX_BODY_LENGTH) {
+        if (! isset($entry['body']) || ! is_string($entry['body']) || $entry['body'] === '' || mb_strlen($entry['body']) > self::MAX_BODY_LENGTH) {
             return false;
         }
 
         return isset($entry['language']) && is_string($entry['language']);
+    }
+
+    private function importTimestamp(mixed $timestamp): ?CarbonImmutable
+    {
+        if (! is_string($timestamp) || $timestamp === '') {
+            return null;
+        }
+
+        try {
+            $parsed = CarbonImmutable::createFromFormat(DATE_ATOM, $timestamp);
+
+            return $parsed !== false && $parsed->format(DATE_ATOM) === $timestamp ? $parsed : null;
+        } catch (Throwable) {
+            return null;
+        }
     }
 }
