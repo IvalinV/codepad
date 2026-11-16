@@ -6,6 +6,8 @@ use App\Models\Snippet;
 use App\Models\SnippetRender;
 use App\Native\SnippetShowScreen;
 use App\Support\Highlighting\SnippetRenderer;
+use Illuminate\Support\Facades\Http;
+use Native\Mobile\Facades\Browser;
 use Native\Mobile\System;
 use Native\Mobile\Testing\Native;
 
@@ -290,6 +292,190 @@ MARKDOWN,
         ->and($rendered)->toContain('Цена за портал')
         ->and($rendered)->toContain('XML / RSS / Feed интеграция')
         ->and($rendered)->toContain('300 – 800 EUR');
+});
+
+it('renders markdown urls as clickable links without open graph previews', function () {
+    $snippet = Snippet::factory()->create([
+        'body' => 'Read [Laravel](https://laravel.com) and https://example.com/docs.',
+        'language' => Language::Markdown,
+    ]);
+
+    $rendered = json_encode(
+        Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree(),
+        JSON_UNESCAPED_SLASHES,
+    );
+
+    expect($rendered)
+        ->toContain('Laravel')
+        ->toContain('https://example.com/docs')
+        ->toContain('"type":"pressable"')
+        ->not->toContain('open_graph_preview');
+});
+
+it('renders plain text urls as clickable links without a preview fallback', function () {
+    Http::fake([
+        'https://example.com/*' => Http::response('', 204),
+    ]);
+
+    $snippet = Snippet::factory()->create([
+        'body' => 'Visit https://example.com/docs for details.',
+        'language' => Language::PlainText,
+    ]);
+
+    $rendered = json_encode(
+        Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree(),
+        JSON_UNESCAPED_SLASHES,
+    );
+
+    expect($rendered)
+        ->toContain('https://example.com/docs')
+        ->toContain('"type":"pressable"')
+        ->not->toContain('open_graph_preview');
+});
+
+it('renders an open graph preview for plain text urls only', function () {
+    $requests = 0;
+    Http::fake(function () use (&$requests) {
+        $requests++;
+
+        return Http::response(<<<'HTML'
+            <meta property="og:title" content="Example title">
+            <meta property="og:description" content="Example description">
+            <meta property="og:site_name" content="Example site">
+            HTML, 200, ['Content-Type' => 'text/html']);
+    });
+
+    $plainTextSnippet = Snippet::factory()->create([
+        'body' => 'Visit https://example.com/docs.',
+        'language' => Language::PlainText,
+    ]);
+    $plainText = json_encode(
+        Native::test(SnippetShowScreen::class, ['snippet' => (string) $plainTextSnippet->id])->tree(),
+        JSON_UNESCAPED_SLASHES,
+    );
+
+    expect($plainText)
+        ->toContain('Example title')
+        ->toContain('Example description')
+        ->toContain('Example site');
+
+    $markdownSnippet = Snippet::factory()->create([
+        'body' => '[Example](https://example.com/docs)',
+        'language' => Language::Markdown,
+    ]);
+    $markdown = json_encode(
+        Native::test(SnippetShowScreen::class, ['snippet' => (string) $markdownSnippet->id])->tree(),
+        JSON_UNESCAPED_SLASHES,
+    );
+
+    expect($markdown)
+        ->toContain('Example')
+        ->not->toContain('Example title')
+        ->and($requests)->toBe(1);
+});
+
+it('limits plain text open graph lookups per screen render', function () {
+    $requests = 0;
+    Http::fake(function () use (&$requests) {
+        $requests++;
+
+        return Http::response('<meta property="og:title" content="Example">', 200, [
+            'Content-Type' => 'text/html',
+        ]);
+    });
+
+    $urls = array_map(
+        fn (int $number): string => "https://example.com/page-{$number}",
+        range(1, 6),
+    );
+    $snippet = Snippet::factory()->create([
+        'body' => implode(' ', $urls),
+        'language' => Language::PlainText,
+    ]);
+
+    Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree();
+
+    expect($requests)->toBe(5);
+});
+
+it('renders markdown urls in lists and table cells as clickable links', function () {
+    $snippet = Snippet::factory()->create([
+        'body' => "- https://list.test/item\n\n| Link |\n| --- |\n| [Cell](https://cell.test) |",
+        'language' => Language::Markdown,
+    ]);
+
+    $rendered = json_encode(
+        Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree(),
+        JSON_UNESCAPED_SLASHES,
+    );
+
+    expect($rendered)
+        ->toContain('https://list.test/item')
+        ->toContain('Cell')
+        ->toContain('"type":"pressable"');
+});
+
+it('keeps ordered markdown list content in the marker row width', function () {
+    $snippet = Snippet::factory()->create([
+        'body' => "1. First item\n2. Second item",
+        'language' => Language::Markdown,
+    ]);
+
+    $tree = Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree();
+    $listRow = collect(nodesOfType($tree, 'row'))->first(
+        fn (array $node): bool => collect($node['children'] ?? [])
+            ->contains(fn (array $child): bool => ($child['props']['text'] ?? null) === '1.'),
+    );
+    $inlineRow = collect($listRow['children'] ?? [])->first(
+        fn (array $child): bool => ($child['type'] ?? null) === 'row',
+    );
+
+    expect($inlineRow)->not->toBeNull()
+        ->and($inlineRow['layout']['width'] ?? null)->not->toBe('fill');
+});
+
+it('keeps plain text source lines in separate vertical rows', function () {
+    $snippet = Snippet::factory()->create([
+        'body' => "first line\nVisit https://example.com/docs\nlast line",
+        'language' => Language::PlainText,
+    ]);
+
+    Http::fake([
+        'https://example.com/*' => Http::response('', 204),
+    ]);
+
+    $tree = Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])->tree();
+    $scrollView = nodesOfType($tree, 'scroll_view')[0];
+    $content = $scrollView['children'][0] ?? [];
+
+    expect($content['type'] ?? null)->toBe('column')
+        ->and($content['children'] ?? [])->toHaveCount(3)
+        ->and(collect($content['children'] ?? [])->every(
+            fn (array $child): bool => ($child['type'] ?? null) === 'row',
+        ))->toBeTrue();
+});
+
+it('openUrl opens valid urls in the system browser', function () {
+    Browser::shouldReceive('open')
+        ->once()
+        ->with('https://example.com')
+        ->andReturnTrue();
+
+    $snippet = Snippet::factory()->create();
+
+    Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id])
+        ->call('openUrl', 'https://example.com');
+});
+
+it('openUrl does not open unsupported or malformed urls', function () {
+    Browser::shouldReceive('open')->never();
+
+    $snippet = Snippet::factory()->create();
+    $screen = Native::test(SnippetShowScreen::class, ['snippet' => (string) $snippet->id]);
+
+    $screen->call('openUrl', 'javascript:alert(1)');
+    $screen->call('openUrl', 'file:///tmp/example');
+    $screen->call('openUrl', 'not a url');
 });
 
 it('does not re-highlight when the picker reselects the language already in use', function () {
