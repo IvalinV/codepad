@@ -2,6 +2,7 @@
 
 namespace App\Support\Urls;
 
+use Closure;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Cache;
@@ -13,10 +14,31 @@ final class OpenGraphMetadata
 
     private const CACHE_VERSION = 'v2';
 
+    /** @var Closure(string): list<string> */
+    private Closure $resolver;
+
+    /** @param (Closure(string): list<string>)|null $resolver */
+    public function __construct(?Closure $resolver = null)
+    {
+        $this->resolver = $resolver ?? function (string $host): array {
+            $addresses = gethostbynamel($host) ?: [];
+
+            foreach (dns_get_record($host, DNS_AAAA) ?: [] as $record) {
+                if (isset($record['ipv6'])) {
+                    $addresses[] = $record['ipv6'];
+                }
+            }
+
+            return array_values(array_unique($addresses));
+        };
+    }
+
     /** @return array{title?: string, description?: string, image?: string, siteName?: string}|null */
     public function fetch(string $url): ?array
     {
-        if (! $this->isSafeUrl($url)) {
+        $address = $this->validatedAddress($url);
+
+        if ($address === null) {
             return null;
         }
 
@@ -28,7 +50,7 @@ final class OpenGraphMetadata
         }
 
         try {
-            $metadata = $this->retrieve($url);
+            $metadata = $this->retrieve($url, $address);
         } catch (ConnectionException) {
             $metadata = null;
         }
@@ -43,9 +65,9 @@ final class OpenGraphMetadata
     }
 
     /** @return array{title?: string, description?: string, image?: string, siteName?: string}|null */
-    private function retrieve(string $url): ?array
+    private function retrieve(string $url, string $address): ?array
     {
-        $response = $this->request()->get($url);
+        $response = $this->request($this->resolveEntry($url, $address))->get($url);
 
         if (! $response->successful()) {
             return null;
@@ -81,11 +103,26 @@ final class OpenGraphMetadata
         return $this->parse($html);
     }
 
-    private function request(): PendingRequest
+    private function resolveEntry(string $url, string $address): string
+    {
+        $parts = parse_url($url);
+        $host = (string) ($parts['host'] ?? '');
+        $host = str_contains($host, ':') && ! str_starts_with($host, '[') ? '['.$host.']' : $host;
+        $port = (int) ($parts['port'] ?? (strtolower((string) ($parts['scheme'] ?? '')) === 'https' ? 443 : 80));
+        $resolvedAddress = str_contains($address, ':') ? '['.$address.']' : $address;
+
+        return $host.':'.$port.':'.$resolvedAddress;
+    }
+
+    private function request(string $resolvedHost): PendingRequest
     {
         return Http::timeout(5)
             ->connectTimeout(2)
-            ->withOptions(['allow_redirects' => false, 'stream' => true])
+            ->withOptions([
+                'allow_redirects' => false,
+                'stream' => true,
+                'curl' => [CURLOPT_RESOLVE => [$resolvedHost]],
+            ])
             ->accept('text/html');
     }
 
@@ -129,47 +166,47 @@ final class OpenGraphMetadata
 
     private function isSafeUrl(string $url): bool
     {
+        return $this->validatedAddress($url) !== null;
+    }
+
+    private function validatedAddress(string $url): ?string
+    {
         if (filter_var($url, FILTER_VALIDATE_URL) === false) {
-            return false;
+            return null;
         }
 
         $parts = parse_url($url);
         $scheme = strtolower((string) ($parts['scheme'] ?? ''));
         $host = strtolower((string) ($parts['host'] ?? ''));
+        $host = trim($host, '[]');
 
         if (! in_array($scheme, ['http', 'https'], true) || $host === '') {
-            return false;
+            return null;
         }
 
         if ($host === 'localhost' || str_ends_with($host, '.local')) {
-            return false;
+            return null;
         }
 
         $ip = filter_var($host, FILTER_VALIDATE_IP);
 
         if ($ip !== false) {
-            return $this->isPublicIp($ip);
+            return $this->isPublicIp($ip) ? $ip : null;
         }
 
-        $addresses = gethostbynamel($host);
+        $addresses = ($this->resolver)($host);
 
         if ($addresses === false || $addresses === []) {
-            return false;
+            return null;
         }
 
         foreach ($addresses as $address) {
             if (! $this->isPublicIp($address)) {
-                return false;
+                return null;
             }
         }
 
-        foreach (dns_get_record($host, DNS_AAAA) ?: [] as $record) {
-            if (isset($record['ipv6']) && ! $this->isPublicIp($record['ipv6'])) {
-                return false;
-            }
-        }
-
-        return true;
+        return $addresses[0];
     }
 
     private function isPublicIp(string $ip): bool

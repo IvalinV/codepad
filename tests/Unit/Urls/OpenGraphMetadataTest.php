@@ -122,6 +122,53 @@ it('rejects unsupported and private urls before fetching', function () {
     Http::assertNothingSent();
 });
 
+it('supports a public ipv6-only hostname', function () {
+    Http::fake([
+        'https://example.com/*' => Http::response('<meta property="og:title" content="IPv6 title">', 200, [
+            'Content-Type' => 'text/html',
+        ]),
+    ]);
+
+    $fetcher = new OpenGraphMetadata(fn (string $host): array => [
+        '2606:4700:4700::1111',
+    ]);
+
+    expect($fetcher->fetch('https://example.com/page'))->toBe(['title' => 'IPv6 title']);
+});
+
+it('supports a public ipv6 literal', function () {
+    Http::fake([
+        'https://[2606:4700:4700::1111]/*' => Http::response('<meta property="og:title" content="IPv6 literal title">', 200, [
+            'Content-Type' => 'text/html',
+        ]),
+    ]);
+
+    expect(app(OpenGraphMetadata::class)->fetch('https://[2606:4700:4700::1111]/page'))
+        ->toBe(['title' => 'IPv6 literal title']);
+});
+
+it('formats ipv6 resolve entries with a bracketed host', function () {
+    $method = new ReflectionMethod(OpenGraphMetadata::class, 'resolveEntry');
+
+    expect($method->invoke(
+        app(OpenGraphMetadata::class),
+        'https://[2606:4700:4700::1111]/page',
+        '2606:4700:4700::1111',
+    ))->toBe('[2606:4700:4700::1111]:443:[2606:4700:4700::1111]');
+});
+
+it('rejects a hostname that resolves to a private address', function () {
+    Http::fake();
+
+    $fetcher = new OpenGraphMetadata(fn (string $host): array => [
+        '127.0.0.1',
+    ]);
+
+    expect($fetcher->fetch('https://example.com/page'))->toBeNull();
+
+    Http::assertNothingSent();
+});
+
 it('omits unsafe open graph images while keeping safe metadata', function () {
     Http::fake([
         'https://example.com/*' => Http::response(<<<'HTML'
