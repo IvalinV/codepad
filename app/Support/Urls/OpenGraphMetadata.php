@@ -118,12 +118,17 @@ final class OpenGraphMetadata
     {
         return Http::timeout(5)
             ->connectTimeout(2)
-            ->withOptions([
-                'allow_redirects' => false,
-                'stream' => true,
-                'curl' => [CURLOPT_RESOLVE => [$resolvedHost]],
-            ])
+            ->withOptions($this->requestOptions())
             ->accept('text/html');
+    }
+
+    /** @return array{allow_redirects: false, stream: true} */
+    private function requestOptions(): array
+    {
+        return [
+            'allow_redirects' => false,
+            'stream' => true,
+        ];
     }
 
     /** @return array{title?: string, description?: string, image?: string, siteName?: string}|null */

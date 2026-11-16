@@ -169,6 +169,15 @@ it('rejects a hostname that resolves to a private address', function () {
     Http::assertNothingSent();
 });
 
+it('does not pass curl options to the metadata request', function () {
+    $method = new ReflectionMethod(OpenGraphMetadata::class, 'requestOptions');
+    $fetcher = app(OpenGraphMetadata::class);
+
+    expect($method->invoke(
+        $fetcher,
+    ))->not->toHaveKey('curl');
+});
+
 it('omits unsafe open graph images while keeping safe metadata', function () {
     Http::fake([
         'https://example.com/*' => Http::response(<<<'HTML'
